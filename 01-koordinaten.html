@@ -6,42 +6,65 @@
 <title>Koordinaten – 3D-Spiele erklärt</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="2">
+<body data-page="2" data-fig="img/s2-draht.png" data-cap="Jede Linie dieser Darstellung verbindet zwei Punkte (x | y | z).">
 <main>
 <div class="eyebrow">KAPITEL 1 VON 7</div>
 <h1>Koordinaten</h1>
-<p class="lead">Um einen Ort in einer 3D-Welt festzulegen, brauchst du drei Zahlen: x, y und z.</p>
-<p>Aus dem Mathematikunterricht kennst du x und y. Nach rechts geht x, nach oben geht y. In 3D kommt eine dritte Achse dazu: <b>z</b> zeigt in die Tiefe, auf dich zu oder von dir weg. Jeder Punkt der Welt ist ein Zahlentripel (x | y | z).</p>
+<p class="lead">Jeder Ort in der Spielwelt ist ein Punkt (x | y | z). Fast alles, was ein Spiel mit seiner Welt tut, ist Rechnen mit solchen Zahlentripeln.</p>
+<p>x zeigt nach rechts, y nach oben, z in die Tiefe. In Python ist ein Punkt einfach eine Liste mit drei Zahlen:</p>
+<pre><code>p = [2, 1, 2]        # x, y, z</code></pre>
 <div class="demo">
- <div class="bar"><label class="sl">x <input id="x" type="range" min="-3" max="3" step="1" value="2"></label><label class="sl">y <input id="y" type="range" min="-3" max="3" step="1" value="1"></label><label class="sl">z <input id="z" type="range" min="-3" max="3" step="1" value="2"></label></div>
+ <div class="bar"><label class="sl">x <input id="x" type="range" min="-3" max="3" step="0.5" value="2"></label><label class="sl">y <input id="y" type="range" min="0" max="3" step="0.5" value="1"></label><label class="sl">z <input id="z" type="range" min="-3" max="3" step="0.5" value="2"></label><label class="sl">Drehung α <input id="a" type="range" min="0" max="360" step="5" value="0"></label></div>
  <canvas id="c" role="img" aria-label="Koordinatensystem mit Punkt"></canvas>
  <div class="info" id="info"></div>
 </div>
-<p>Ziehe an den Reglern und beobachte, wohin sich der Punkt bewegt. Du kannst die Szene auch mit der Maus drehen.</p>
-<div class="merke"><b>Merke:</b> Ein Punkt im Raum besteht aus drei Zahlen (x | y | z). Alles in einem 3D-Spiel, jede Figur und jede Wand, besteht am Ende aus solchen Punkten.</div>
-<div class="quiz" data-q="Ein Spieler springt nach oben. Welche Koordinate ändert sich?" data-c="1" data-why="y ist die Achse nach oben."><ul><li>x</li><li>y</li><li>z</li></ul></div>
-<div class="quiz" data-q="Der Punkt (0 | 0 | 5) liegt …" data-c="2" data-why="Nur z ist verändert, der Punkt liegt genau in der Tiefe der z-Achse."><ul><li>5 Einheiten rechts vom Ursprung</li><li>5 Einheiten über dem Ursprung</li><li>5 Einheiten in der Tiefe, mittig</li></ul></div>
+<p>Die Szene lässt sich mit der Maus drehen. Der Regler α dreht den Punkt um die y-Achse.</p>
+<h2>Drei Grundoperationen</h2>
+<h3>Verschieben</h3>
+<p>Eine Bewegung ist eine Addition, Koordinate für Koordinate.</p>
+<pre><code>def verschiebe(p, v):
+    return [p[0] + v[0], p[1] + v[1], p[2] + v[2]]</code></pre>
+<h3>Abstand</h3>
+<p>Der Abstand zweier Punkte folgt aus dem Satz des Pythagoras, zweimal angewendet: erst in der Bodenebene, dann mit der Höhe.</p>
+<pre><code>def abstand(p, q):
+    dx, dy, dz = q[0] - p[0], q[1] - p[1], q[2] - p[2]
+    return (dx*dx + dy*dy + dz*dz) ** 0.5</code></pre>
+<h3>Drehen um die y-Achse</h3>
+<p>Bei einer Drehung um die y-Achse bleibt y gleich. x und z bewegen sich auf einem Kreis, beschrieben durch Sinus und Kosinus:</p>
+<pre><code>from math import sin, cos
+
+def drehe_y(p, alpha):               # alpha im Bogenmaß
+    x, y, z = p
+    return [x * cos(alpha) + z * sin(alpha),
+            y,
+            -x * sin(alpha) + z * cos(alpha)]</code></pre>
+<h2>Aufwand</h2>
+<p>Jede dieser Operationen kostet eine feste, kleine Zahl von Rechenschritten. Eine Figur besteht aber aus vielen Punkten. Dreht sich eine Figur mit 50 000 Punkten, wird <code>drehe_y</code> in jedem Bild 50 000-mal aufgerufen. Der Aufwand wächst linear mit der Zahl der Punkte n, man schreibt O(n).</p>
+<div class="merke"><b>Merke:</b> Ein Punkt ist eine Liste [x, y, z]. Verschieben ist Addieren, der Abstand folgt aus Pythagoras, Drehen aus Sinus und Kosinus. Der Aufwand für eine Figur wächst linear mit der Zahl ihrer Punkte.</div>
+<div class="quiz" data-q="Wie weit ist der Punkt (1 | 2 | 2) vom Ursprung entfernt?" data-c="0" data-why="√(1 + 4 + 4) = √9 = 3."><ul><li>3</li><li>5</li><li>9</li></ul></div><div class="quiz" data-q="Der Punkt (1 | 0 | 0) wird mit drehe_y um 90° gedreht. Wo liegt er danach?" data-c="0" data-why="x′ = 1 · cos 90° = 0 und z′ = −1 · sin 90° = −1; y bleibt 0."><ul><li>(0 | 0 | −1)</li><li>(0 | 1 | 0)</li><li>(−1 | 0 | 0)</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Schreibe eine Funktion <code>skaliere(p, k)</code>, die einen Punkt vom Ursprung aus um den Faktor k streckt. Was passiert mit dem Abstand zum Ursprung?</div><summary>Lösung anzeigen</summary><div class="t"><code>return [p[0]*k, p[1]*k, p[2]*k]</code>. Der Abstand zum Ursprung wird ebenfalls mit k multipliziert.</div></details>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-const c=document.getElementById("c"),W=620,H=380,ctx=M3D.setup(c,W,H);
-const st={ax:0.35,ay:-0.5};
-const cam={cx:W/2,cy:H/2+10,dist:9,f:6,scale:34};
-const inp=["x","y","z"].map(i=>document.getElementById(i));
-function P(x,y,z){const r=M3D.rotX(M3D.rotY([x,y,z],st.ay),st.ax);return M3D.project(r,cam);}
+const c=document.getElementById("c"),W=660,H=430,ctx=M3D.setup(c,W,H);
+const st={ax:0.4,ay:-0.55},cam={cx:W/2,cy:H/2+95,dist:14,f:14,scale:84};
+const g=i=>+document.getElementById(i).value;
+function P(x,y,z){return M3D.project(M3D.rotX(M3D.rotY([x,y,z],st.ay),st.ax),cam);}
 function line(a,b,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}
 function draw(){ctx.clearRect(0,0,W,H);
- const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),bd=M3D.css("--bd");
- // Bodenraster
+ const tx=M3D.css("--tx"),ac=M3D.css("--ac"),bd=M3D.css("--bd"),mu=M3D.css("--mu");
  for(let i=-3;i<=3;i++){line(P(i,0,-3),P(i,0,3),bd,1);line(P(-3,0,i),P(3,0,i),bd,1);}
- const o=P(0,0,0);
- [["x",[3.6,0,0]],["y",[0,3.6,0]],["z",[0,0,3.6]]].forEach(([n,v])=>{const e=P(...v);line(o,e,tx,2);ctx.fillStyle=tx;ctx.font="700 18px Nunito,sans-serif";ctx.fillText(n,e[0]+6,e[1]-6);});
- const [x,y,z]=inp.map(i=>+i.value),p=P(x,y,z);
- line(p,P(x,0,z),ac,1.5,[5,5]);line(P(x,0,z),P(x,0,0),ac,1.5,[5,5]);line(P(x,0,z),P(0,0,z),ac,1.5,[5,5]);
- ctx.beginPath();ctx.arc(p[0],p[1],8,0,7);ctx.fillStyle=ac;ctx.fill();
- document.getElementById("info").textContent="Punkt ("+x+" | "+y+" | "+z+")";}
-inp.forEach(i=>i.oninput=draw);M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
+ const o=P(0,0,0);ctx.font=M3D.font(700);
+ [["x",[3.7,0,0]],["y",[0,3.6,0]],["z",[0,0,3.7]]].forEach(([n,v])=>{const e=P(...v);line(o,e,tx,2);ctx.fillStyle=tx;ctx.fillText(n,e[0]+7,e[1]-5);});
+ const al=g("a")*Math.PI/180,p0=[g("x"),g("y"),g("z")],p=M3D.rotY(p0,-al); // gleiche Formel wie drehe_y
+ const q=[p0[0]*Math.cos(al)+p0[2]*Math.sin(al),p0[1],-p0[0]*Math.sin(al)+p0[2]*Math.cos(al)];
+ if(al>0){ctx.beginPath();for(let t=0;t<=64;t++){const b=al*t/64,r=[p0[0]*Math.cos(b)+p0[2]*Math.sin(b),p0[1],-p0[0]*Math.sin(b)+p0[2]*Math.cos(b)],s=P(...r);t?ctx.lineTo(s[0],s[1]):ctx.moveTo(s[0],s[1]);}
+  ctx.strokeStyle=mu;ctx.lineWidth=1.5;ctx.setLineDash([4,5]);ctx.stroke();ctx.setLineDash([]);}
+ const s=P(...q),f=P(q[0],0,q[2]);
+ line(s,f,ac,1.5,[5,5]);line(f,P(q[0],0,0),ac,1.5,[5,5]);line(f,P(0,0,q[2]),ac,1.5,[5,5]);line(o,s,ac,2);
+ ctx.beginPath();ctx.arc(s[0],s[1],8,0,7);ctx.fillStyle=ac;ctx.fill();
+ document.getElementById("info").textContent="p = ("+M3D.de(q[0])+" | "+M3D.de(q[1])+" | "+M3D.de(q[2])+") · Abstand zum Ursprung: "+M3D.de(Math.hypot(...q),2);}
+["x","y","z","a"].forEach(i=>document.getElementById(i).oninput=draw);M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
 </script>
 </body>
 </html>

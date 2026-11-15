@@ -39,6 +39,23 @@ M3D.cube=function(s){
   return {v,t};
 };
 
+
+M3D.de=(v,n)=>v.toFixed(n==null?1:n).replace(".",",").replace("-","−");
+M3D.hex=h=>{h=h.replace("#","");if(h.length===3)h=h.replace(/./g,"$&$&");return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
+M3D.mix=(a,b,t)=>{const A=M3D.hex(a),B=M3D.hex(b);return "rgb("+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(",")+")";};
+M3D.font=w=>(w||600)+" 15px Figtree,system-ui,sans-serif";
+// Kugel aus S Segmenten rundum und T Ringen: 2·S·(T−1) Dreiecke
+M3D.sphere=function(S,T,r){
+  const v=[[0,r,0]],t=[];
+  for(let i=1;i<T;i++){const a=Math.PI*i/T;for(let j=0;j<S;j++){const b=2*Math.PI*j/S;v.push([r*Math.sin(a)*Math.cos(b),r*Math.cos(a),r*Math.sin(a)*Math.sin(b)]);}}
+  v.push([0,-r,0]);const last=v.length-1,id=(i,j)=>1+(i-1)*S+(j%S);
+  for(let j=0;j<S;j++){t.push([0,id(1,j),id(1,j+1),0]);t.push([last,id(T-1,j+1),id(T-1,j),0]);}
+  for(let i=1;i<T-1;i++)for(let j=0;j<S;j++){t.push([id(i,j),id(i+1,j),id(i+1,j+1),0]);t.push([id(i,j),id(i+1,j+1),id(i,j+1),0]);}
+  // Umlaufsinn so drehen, dass jede Normale nach außen zeigt
+  t.forEach(q=>{const a=v[q[0]],b=v[q[1]],c=v[q[2]],n=M3D.cross(M3D.sub(b,a),M3D.sub(c,a));
+    if(M3D.dot(n,[a[0]+b[0]+c[0],a[1]+b[1]+c[1],a[2]+b[2]+c[2]])<0){const h=q[1];q[1]=q[2];q[2]=h;}});
+  return {v,t};
+};
 M3D.sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
 M3D.cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
 M3D.dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
@@ -71,8 +88,8 @@ M3D.drawMesh=function(ctx,mesh,o){
       ctx.closePath();
       if(o.mode==="fill"){
         const lam=Math.max(0,M3D.dot(n,L));
-        ctx.fillStyle=cols[Math.min(2,Math.round((1-lam)*2))];ctx.fill();
-        ctx.strokeStyle=ink;ctx.lineWidth=o.lines===false?0:1.6;if(o.lines!==false)ctx.stroke();
+        ctx.fillStyle=o.smooth?M3D.mix(cols[2],cols[0],lam):cols[Math.min(2,Math.round((1-lam)*2))];ctx.fill();
+        ctx.strokeStyle=ink;if(o.lines!==false){ctx.lineWidth=o.lw||1.6;ctx.stroke();}
       }else{ctx.strokeStyle=tx;ctx.lineWidth=1.5;ctx.stroke();}
     });
   }

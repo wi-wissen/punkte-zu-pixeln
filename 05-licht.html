@@ -6,57 +6,123 @@
 <title>Licht und Schatten – 3D-Spiele erklärt</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="6">
+<body data-page="6" data-fig="img/s6-heute.png" data-cap="Erst Licht und Schatten lassen die Rüstung nach Metall aussehen.">
 <main>
 <div class="eyebrow">KAPITEL 5 VON 7</div>
 <h1>Licht und Schatten</h1>
-<p class="lead">Licht entscheidet, ob eine Szene flach oder räumlich wirkt. Es gibt zwei Wege, es zu berechnen.</p>
-<h2>Weg 1: Helligkeit nach Winkel</h2>
-<p>Eine Fläche ist umso heller, je direkter das Licht auf sie fällt. Fällt es senkrecht darauf, ist sie am hellsten, streift es nur, ist sie dunkel. Der Computer rechnet dafür pro Dreieck den Winkel zwischen Fläche und Licht aus. Das geht blitzschnell, hat aber eine Lücke: Ob etwas im Weg steht, wird nicht geprüft. Ein Schatten entsteht so nicht von selbst, Spiele müssen ihn mit zusätzlichen Tricks <b>vortäuschen</b>.</p>
+<p class="lead">Ohne Licht wäre jedes Dreieck einfarbig und die Szene flach. Es gibt zwei grundverschiedene Wege, Licht zu berechnen, und sie unterscheiden sich vor allem im Aufwand.</p>
+<h2>Weg 1: Helligkeit aus dem Winkel</h2>
+<p>Eine Fläche ist am hellsten, wenn das Licht senkrecht auf sie trifft, und dunkel, wenn es sie nur streift. Um das zu berechnen, braucht man zwei Richtungen als Vektoren der Länge 1: die <b>Normale</b> n, die senkrecht auf der Fläche steht, und die Richtung l zur Lichtquelle. Die Helligkeit ist der Kosinus des Winkels zwischen beiden. Für Vektoren der Länge 1 ist das gerade ihr Skalarprodukt:</p>
+<pre><code>def helligkeit(n, l):
+    k = n[0]*l[0] + n[1]*l[1] + n[2]*l[2]     # cos des Winkels zwischen n und l
+    return max(0, k)                          # von hinten beleuchtet: dunkel</code></pre>
+<p>Das sind drei Multiplikationen pro Pixel, also praktisch umsonst. Die Rechnung betrachtet aber nur die Fläche selbst und die Lichtquelle. Ob ein anderes Objekt dazwischen steht, weiß sie nicht. <b>Schatten entstehen so nicht.</b></p>
 <h2>Weg 2: Raytracing</h2>
-<p>Beim Raytracing schickt der Computer für <b>jedes Pixel einen Strahl</b> von der Kamera in die Szene. Er sucht, was der Strahl trifft. Dann schickt er vom Treffpunkt einen zweiten Strahl zur Lampe. Liegt etwas dazwischen, ist der Punkt im Schatten. Das sieht sehr realistisch aus, kostet aber viel Rechenzeit. Wechsle zwischen den Wegen und bewege das Licht:</p>
+<p>Raytracing dreht die Rasterisierung um. Statt zu fragen, welche Pixel ein Dreieck bedeckt, fragt man für jedes Pixel, was dort zu sehen ist. Dazu wird von der Kamera aus ein Strahl durch das Pixel in die Szene verfolgt. Am ersten Treffer wird ein zweiter Strahl zur Lichtquelle geschickt. Trifft dieser <b>Schattenstrahl</b> unterwegs ein Objekt, liegt der Punkt im Schatten.</p>
+<pre><code>for pixel in bild:
+    strahl = strahl_durch(kamera, pixel)
+    treffer = naechster_schnittpunkt(strahl, szene)
+    if treffer is None:
+        pixel.farbe = HIMMEL
+    else:
+        zum_licht = strahl_von(treffer.punkt, lichtquelle)
+        if naechster_schnittpunkt(zum_licht, szene) is not None:
+            pixel.farbe = SCHATTEN
+        else:
+            pixel.farbe = treffer.farbe * helligkeit(treffer.normale, zum_licht.richtung)</code></pre>
 <div class="demo">
- <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="angle">Nur Winkel</button><button data-m="ray">Raytracing mit Schatten</button></div><label class="sl">Licht <input id="a" type="range" min="-80" max="80" value="-40"></label></div>
- <canvas id="c" role="img" aria-label="Kugel auf einer Fläche, beleuchtet"></canvas>
+ <div class="bar"><span>Ziehe die Lichtquelle</span><span id="sinfo"></span></div>
+ <canvas id="s" role="img" aria-label="Schema: Strahlen von der Kamera und Schattenstrahlen"></canvas>
+ <div class="info">Durchgezogen: Strahlen von der Kamera. Grün: Schattenstrahl erreicht das Licht. Gestrichelt: Schattenstrahl ist blockiert.</div>
+</div>
+<p>Das Schema zeigt eine flache Welt von der Seite, mit nur 16 Pixeln. Die Spalte links neben den Strahlen ist das fertige Bild.</p>
+<h3>Der Schnitt von Strahl und Kugel</h3>
+<p>Ein Strahl startet im Punkt o und läuft in Richtung d. Jeder Punkt auf ihm ist o + t · d mit t ≥ 0. Eine Kugel mit Mittelpunkt m und Radius r besteht aus allen Punkten mit Abstand r von m. Setzt man den Strahl in die Abstandsformel aus Kapitel 1 ein, entsteht eine <b>quadratische Gleichung</b> für t:</p>
+<p class="formel">t² + 2·b·t + c = 0</p>
+<p>mit b = (o − m) · d und c = (o − m) · (o − m) − r², wobei der Punkt das Skalarprodukt meint und d die Länge 1 hat. Die Lösungsformel liefert t = −b ± √(b² − c). Ist der Ausdruck unter der Wurzel negativ, verfehlt der Strahl die Kugel. Sonst ist die kleinere positive Lösung der vordere Schnittpunkt.</p>
+<pre><code>def schnitt_kugel(o, d, m, r):
+    om = [o[0] - m[0], o[1] - m[1], o[2] - m[2]]
+    b = om[0]*d[0] + om[1]*d[1] + om[2]*d[2]
+    c = om[0]*om[0] + om[1]*om[1] + om[2]*om[2] - r*r
+    diskriminante = b*b - c
+    if diskriminante &lt; 0:
+        return None                      # kein Schnittpunkt
+    t = -b - diskriminante ** 0.5
+    return t if t &gt; 0 else None</code></pre>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs" data-for><button class="on" data-m="0">Nur Winkel</button><button data-m="1">Mit Schattenstrahl</button></div><span>Ziehe die Lichtquelle</span></div>
+ <canvas id="c" role="img" aria-label="Kugel auf einer Fläche mit beweglicher Lichtquelle"></canvas>
  <div class="info" id="info"></div>
 </div>
-<p>Moderne Spiele mischen beides: Das meiste wird schnell nach Winkel gerechnet, und Raytracing kommt nur dort dazu, wo es viel bringt, zum Beispiel für Schatten und Spiegelungen.</p>
-<div class="merke"><b>Merke:</b> Rasterisierung berechnet Licht nach dem Winkel und ist schnell, Schatten muss sie aber vortäuschen. Raytracing verfolgt einen Strahl pro Pixel und liefert echte Schatten, kostet aber viel Zeit.</div>
-<div class="quiz" data-q="Was fehlt, wenn man Licht nur nach dem Winkel berechnet?" data-c="1" data-why="Ob etwas im Weg steht, wird dabei nicht geprüft."><ul><li>Die Farbe</li><li>Der Schatten</li><li>Die Form</li></ul></div>
-<div class="quiz" data-q="Ein Bild hat 1920 × 1080 Pixel. Wie viele Strahlen braucht Raytracing mindestens?" data-c="2" data-why="Ein Strahl pro Pixel: etwa 2 Millionen, und das 60-mal pro Sekunde."><ul><li>1920</li><li>1080</li><li>etwa 2 Millionen</li></ul></div>
+<p>Dieses Bild berechnet dein Browser mit genau der Funktion oben, ein Strahl pro Pixel.</p>
+<h2>Aufwand</h2>
+<p>Die einfache Fassung testet jeden Strahl gegen jedes Objekt. Bei 2 Millionen Pixeln und 1 Million Dreiecken wären das 2 Billionen Schnitttests pro Bild, dazu noch einmal so viele für die Schattenstrahlen. Das ist aussichtslos.</p>
+<p>Die Rettung kennst du aus Kapitel 3: Hüllkörper. Man fasst nahe beieinanderliegende Dreiecke in Quadern zusammen, diese wieder in größeren Quadern, bis ein Baum entsteht. Verfehlt ein Strahl einen Quader, entfallen alle Dreiecke darin auf einen Schlag. Statt n Tests braucht ein Strahl dann nur noch etwa log₂ n. Bei einer Million Dreiecken sind das rund 20 Schritte statt einer Million.</p>
+<table><tr><th>Verfahren</th><th>Aufwand pro Bild</th><th>Schatten, Spiegelung</th></tr>
+<tr><td>Rasterisierung</td><td>wächst mit der Zahl der Dreiecke</td><td>nur über Zusatzverfahren</td></tr>
+<tr><td>Raytracing</td><td>Pixel · log(Dreiecke) · Strahlen pro Pixel</td><td>ergeben sich direkt</td></tr></table>
+<p>Die Rasterisierung erzeugt Schatten mit einem Umweg: Die Szene wird zusätzlich aus Sicht der Lichtquelle gezeichnet. Der Tiefenpuffer dieses Bildes verrät, welche Punkte das Licht sieht. Alle anderen liegen im Schatten.</p>
+<p>Heutige Spiele kombinieren beides. Das Grundbild entsteht durch Rasterisierung. Raytracing kommt gezielt hinzu, etwa für weiche Schatten und Spiegelungen, oft mit nur einem Strahl pro Pixel.</p>
+<div class="merke"><b>Merke:</b> Die Helligkeit einer Fläche ist das Skalarprodukt aus Normale und Lichtrichtung. Raytracing verfolgt pro Pixel einen Strahl von der Kamera und einen Schattenstrahl zum Licht. Der Schnitt mit einer Kugel ist eine quadratische Gleichung. Bezahlbar wird es erst durch einen Baum aus Hüllkörpern.</div>
+<div class="quiz" data-q="Das Licht trifft unter 60° zur Normale auf eine Fläche. Wie hell ist sie im Vergleich zu senkrechtem Lichteinfall?" data-c="0" data-why="cos 60° = 0,5."><ul><li>halb so hell</li><li>genauso hell</li><li>gar nicht beleuchtet</li></ul></div><div class="quiz" data-q="Für einen Strahl ergibt sich b = −5 und c = 16. Was folgt daraus?" data-c="1" data-why="b² − c = 25 − 16 = 9, also t = 5 − 3 = 2 (vorderer Schnittpunkt) und t = 8 (hinterer)."><ul><li>Der Strahl verfehlt die Kugel.</li><li>Er trifft sie bei t = 2.</li><li>Er trifft sie bei t = 8.</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Eine Szene hat 8 Millionen Dreiecke. Wie viele Schritte braucht ein Strahl ungefähr im Baum aus Hüllkörpern, wenn jede Ebene die Zahl der Dreiecke halbiert?</div><summary>Lösung anzeigen</summary><div class="t">log₂(8 000 000) ≈ 23, denn 2²³ = 8 388 608. Statt 8 Millionen Tests genügen also etwa 23 Schritte bis zu einem einzelnen Dreieck.</div></details><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Warum genügt für den Schattenstrahl die Antwort „irgendein Schnittpunkt“, während der Kamerastrahl den nächsten Schnittpunkt braucht?</div><summary>Lösung anzeigen</summary><div class="t">Für den Schatten zählt nur, ob etwas im Weg steht. Die Suche kann beim ersten gefundenen Hindernis abbrechen. Der Kamerastrahl muss wissen, welches Objekt vorn liegt, also das kleinste t finden.</div></details>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-const c=document.getElementById("c"),RW=150,RH=84,W=620,H=348,ctx=M3D.setup(c,W,H);
-const off=document.createElement("canvas");off.width=RW;off.height=RH;const octx=off.getContext("2d");
-let mode="angle";
-const hex=h=>{h=h.replace("#","");if(h.length===3)h=h.replace(/./g,"$&$&");return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
-function render(){
- const a=+document.getElementById("a").value*Math.PI/180;
- const L=M3D.norm([Math.sin(a)*1.4,1,-0.35]);
- const sph=[0,0.2,4],R=1,gy=-0.8;
- const bg=hex(M3D.css("--bg")),sc=hex(M3D.css("--c2")),gc=hex(M3D.css("--bd2"));
- const img=octx.createImageData(RW,RH);
- const hitS=(o,d)=>{const oc=M3D.sub(o,sph),b=M3D.dot(oc,d),cc=M3D.dot(oc,oc)-R*R,disc=b*b-cc;if(disc<0)return -1;const t=-b-Math.sqrt(disc);return t>1e-4?t:-1;};
- let rays=0;
- for(let y=0;y<RH;y++)for(let x=0;x<RW;x++){
-  const d=M3D.norm([(x-RW/2)/RH*1.2,-(y-RH/2)/RH*1.2,1]),o=[0,0.4,0];rays++;
-  let col=bg,t=hitS(o,d),tg=d[1]<0?(gy-o[1])/d[1]:-1;
-  let p,n,base;
-  if(t>0&&(tg<0||t<tg)){p=[o[0]+d[0]*t,o[1]+d[1]*t,o[2]+d[2]*t];n=M3D.norm(M3D.sub(p,sph));base=sc;}
-  else if(tg>0){p=[o[0]+d[0]*tg,gy,o[2]+d[2]*tg];n=[0,1,0];base=gc;if(p[2]>14)p=null;}
-  if(p&&base){let lam=Math.max(0,M3D.dot(n,L));
-   if(mode==="ray"&&base===gc){const q=[p[0],p[1]+1e-3,p[2]];if(hitS(q,L)>0)lam*=0.15;}
-   const k=0.25+0.75*lam;col=[base[0]*k,base[1]*k,base[2]*k];
-   if(base===gc){const f=Math.max(0,1-p[2]/14);col=col.map((v,i)=>bg[i]*(1-f)+v*f);}}
-  const i=(y*RW+x)*4;img.data[i]=col[0];img.data[i+1]=col[1];img.data[i+2]=col[2];img.data[i+3]=255;}
- octx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,W,H);
- document.getElementById("info").textContent=mode==="ray"?"Raytracing: "+rays.toLocaleString("de")+" Strahlen für dieses kleine Bild, dazu je ein Schattenstrahl":"Nur Winkel: Die Kugel ist schattiert, aber die Fläche hat keinen Schatten";}
-document.getElementById("a").oninput=render;
-document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
- document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");render();};
-M3D.onTheme(render);render();
+(function(){ // 2D-Schema
+const c=document.getElementById("s"),W=660,H=340,ctx=M3D.setup(c,W,H);
+const E=[34,150],PX=120,N=16,Y0=52,PH=13,K={x:390,y:205,r:58},GY=263;let L=[500,52],dr=false;
+function hitC(o,d){const ox=o[0]-K.x,oy=o[1]-K.y,b=ox*d[0]+oy*d[1],cc=ox*ox+oy*oy-K.r*K.r,D=b*b-cc;if(D<0)return -1;const t=-b-Math.sqrt(D);return t>1e-3?t:-1;}
+function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),bd=M3D.css("--bd2"),no=M3D.css("--no"),bg=M3D.css("--bg"),c2=M3D.css("--c2");
+ ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(150,GY);ctx.lineTo(W,GY);ctx.stroke();
+ ctx.beginPath();ctx.arc(K.x,K.y,K.r,0,7);ctx.fillStyle=M3D.mix(bg,c2,.35);ctx.fill();ctx.stroke();
+ let sh=0,bl=0;
+ for(let i=0;i<N;i++){const py=Y0+(i+.5)*PH,dl=Math.hypot(PX-E[0],py-E[1]),d=[(PX-E[0])/dl,(py-E[1])/dl];
+  let t=hitC(E,d),tg=d[1]>0?(GY-E[1])/d[1]:-1,hit=null,n=null;
+  if(t>0&&(tg<0||t<tg)){hit=[E[0]+d[0]*t,E[1]+d[1]*t];n=[(hit[0]-K.x)/K.r,(hit[1]-K.y)/K.r];}
+  else if(tg>0&&E[0]+d[0]*tg<W){hit=[E[0]+d[0]*tg,GY];n=[0,-1];}
+  ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(E[0],E[1]);
+  let bright=-1;
+  if(hit){ctx.lineTo(hit[0],hit[1]);ctx.stroke();sh++;
+   const ll=Math.hypot(L[0]-hit[0],L[1]-hit[1]),l=[(L[0]-hit[0])/ll,(L[1]-hit[1])/ll],lam=n[0]*l[0]+n[1]*l[1];
+   const st=[hit[0]+n[0]*.5,hit[1]+n[1]*.5],ts=hitC(st,l),blocked=lam<=0||(ts>0&&ts<ll);
+   ctx.beginPath();ctx.moveTo(hit[0],hit[1]);
+   if(blocked){bl++;const e=ts>0&&ts<ll?[st[0]+l[0]*ts,st[1]+l[1]*ts]:[hit[0]+l[0]*26,hit[1]+l[1]*26];ctx.lineTo(e[0],e[1]);ctx.setLineDash([4,4]);ctx.strokeStyle=no;ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);bright=.08;}
+   else{ctx.lineTo(L[0],L[1]);ctx.strokeStyle=ac;ctx.globalAlpha=.55;ctx.lineWidth=1.2;ctx.stroke();ctx.globalAlpha=1;bright=.2+.8*lam;}
+   ctx.beginPath();ctx.arc(hit[0],hit[1],2.5,0,7);ctx.fillStyle=tx;ctx.fill();}
+  else{ctx.lineTo(E[0]+d[0]*640,E[1]+d[1]*640);ctx.globalAlpha=.5;ctx.stroke();ctx.globalAlpha=1;}
+  ctx.fillStyle=bright<0?bg:M3D.mix("#000000",c2,bright);ctx.fillRect(PX-14,Y0+i*PH,14,PH);ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(PX-14+.5,Y0+i*PH+.5,14,PH);}
+ ctx.fillStyle=tx;ctx.beginPath();ctx.arc(E[0],E[1],6,0,7);ctx.fill();
+ ctx.font=M3D.font(600);ctx.fillStyle=mu;ctx.fillText("Kamera",8,E[1]+26);ctx.fillText("Bild",PX-22,Y0-10);
+ sun(ctx,L[0],L[1]);document.getElementById("sinfo").textContent=N+" Kamerastrahlen · "+sh+" Schattenstrahlen · "+bl+" im Schatten";}
+function mv(e){const p=M3D.pos(c,e);L=[Math.max(170,Math.min(W-16,p.x)),Math.max(16,Math.min(130,p.y))];draw();}
+c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
+M3D.onTheme(draw);draw();
+})();
+function sun(ctx,x,y){const tx=M3D.css("--tx"),bg=M3D.css("--bg");ctx.fillStyle=bg;ctx.beginPath();ctx.arc(x,y,17,0,7);ctx.fill();
+ ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.beginPath();for(let k=0;k<8;k++){const a=k*Math.PI/4;ctx.moveTo(x+Math.cos(a)*11,y+Math.sin(a)*11);ctx.lineTo(x+Math.cos(a)*16,y+Math.sin(a)*16);}ctx.stroke();
+ ctx.fillStyle="#f5c542";ctx.beginPath();ctx.arc(x,y,7.5,0,7);ctx.fill();ctx.stroke();}
+(function(){ // 3D-Bild
+const c=document.getElementById("c"),W=660,H=370,ctx=M3D.setup(c,W,H),off=document.createElement("canvas");off.width=W;off.height=H;const o2=off.getContext("2d");
+const LZ=3.0,K=[0,0.2,4],R=1,GY=-0.8,O=[0,0.4,0],F=1.2;let L=[-1.5,1.9,LZ],shadow=false,dr=false;
+const hit=(o,d)=>{const om=M3D.sub(o,K),b=M3D.dot(om,d),cc=M3D.dot(om,om)-R*R,D=b*b-cc;if(D<0)return -1;const t=-b-Math.sqrt(D);return t>1e-4?t:-1;};
+function render(){const bg=M3D.hex(M3D.css("--bg")),sc=M3D.hex(M3D.css("--c2")),gc=M3D.hex(M3D.css("--bd2")),img=o2.createImageData(W,H),D=img.data;let rays=0;
+ for(let y=0;y<H;y++)for(let x=0;x<W;x++){const d=M3D.norm([(x-W/2)/H*F,-(y-H/2)/H*F,1]);rays++;
+  let col=bg,t=hit(O,d),tg=d[1]<0?(GY-O[1])/d[1]:-1,p=null,n,base;
+  if(t>0&&(tg<0||t<tg)){p=[O[0]+d[0]*t,O[1]+d[1]*t,O[2]+d[2]*t];n=M3D.norm(M3D.sub(p,K));base=sc;}
+  else if(tg>0&&tg<40){p=[O[0]+d[0]*tg,GY,O[2]+d[2]*tg];n=[0,1,0];base=gc;}
+  if(p){const lv=M3D.sub(L,p),ll=Math.hypot(lv[0],lv[1],lv[2]),l=[lv[0]/ll,lv[1]/ll,lv[2]/ll];let lam=Math.max(0,M3D.dot(n,l));
+   if(shadow&&base===gc){rays++;const ts=hit([p[0],p[1]+1e-3,p[2]],l);if(ts>0&&ts<ll)lam=0;}
+   const k=.16+.84*lam;col=[base[0]*k,base[1]*k,base[2]*k];
+   if(base===gc){const f=Math.max(0,1-p[2]/16);col=[bg[0]+(col[0]-bg[0])*f,bg[1]+(col[1]-bg[1])*f,bg[2]+(col[2]-bg[2])*f];}}
+  const i=(y*W+x)*4;D[i]=col[0];D[i+1]=col[1];D[i+2]=col[2];D[i+3]=255;}
+ o2.putImageData(img,0,0);ctx.drawImage(off,0,0,W,H);
+ sun(ctx,W/2+(L[0]/L[2])/F*H,H/2-((L[1]-O[1])/L[2])/F*H);
+ document.getElementById("info").textContent=shadow?rays.toLocaleString("de")+" Strahlen für dieses Bild (Kamera- und Schattenstrahlen)":"Die Kugel ist schattiert, wirft aber keinen Schatten auf den Boden.";}
+function mv(e){const p=M3D.pos(c,e);L=[Math.max(-2.6,Math.min(2.6,(p.x-W/2)/H*F*LZ)),Math.max(1.2,Math.min(1.95,O[1]-(p.y-H/2)/H*F*LZ)),LZ];render();}
+c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){shadow=b.dataset.m==="1";render();}});M3D.onTheme(render);render();
+})();
 </script>
 </body>
 </html>

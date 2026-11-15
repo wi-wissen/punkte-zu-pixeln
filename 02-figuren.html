@@ -6,39 +6,66 @@
 <title>Figuren aus Dreiecken – 3D-Spiele erklärt</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="3">
+<body data-page="3" data-fig="img/s1-netz.png" data-cap="Die Ritterin als Dreiecksnetz: eine Eckenliste und eine Indexliste.">
 <main>
 <div class="eyebrow">KAPITEL 2 VON 7</div>
 <h1>Figuren aus Dreiecken</h1>
-<p class="lead">Eine 3D-Figur ist eine Hülle aus Dreiecken. Jedes Dreieck hat drei Eckpunkte, und jeder Eckpunkt ist ein Punkt im Raum.</p>
+<p class="lead">Eine 3D-Figur ist eine Hülle aus Dreiecken. Gespeichert wird sie in zwei Listen.</p>
+<h2>Die Datenstruktur</h2>
+<p>Die erste Liste enthält die Eckpunkte. Die zweite enthält für jedes Dreieck drei Nummern, die auf Eckpunkte verweisen. Für einen Würfel:</p>
+<pre><code>ecken = [[-1,-1,-1], [ 1,-1,-1], [ 1, 1,-1], [-1, 1,-1],     # Nummer 0 bis 3
+         [-1,-1, 1], [ 1,-1, 1], [ 1, 1, 1], [-1, 1, 1]]     # Nummer 4 bis 7
+
+dreiecke = [[0, 2, 1], [0, 3, 2],      # Vorderseite: zwei Dreiecke
+            [5, 7, 4], [5, 6, 7],      # Rückseite
+            ...]                       # insgesamt 12 Dreiecke</code></pre>
 <div class="demo">
- <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="fill">Gefüllt</button><button data-m="wire">Drahtgitter</button><button data-m="points">Nur Eckpunkte</button></div><span>Ziehen zum Drehen</span></div>
+ <div class="bar"><div class="tabs" id="tabs" data-for><button class="on" data-m="fill">Gefüllt</button><button data-m="wire">Drahtgitter</button><button data-m="points">Nur Eckpunkte</button></div><span>Ziehen zum Drehen</span></div>
  <canvas id="c" role="img" aria-label="Würfel aus Dreiecken"></canvas>
  <div class="info">8 Eckpunkte · 12 Dreiecke</div>
 </div>
-<p>Auch der einfache Würfel besteht aus Dreiecken: Jede der 6 Seiten ist ein Viereck, das aus 2 Dreiecken zusammengesetzt wird. Schalte auf „Drahtgitter“, dann siehst du die Dreiecke.</p>
-<h2>Warum Dreiecke und keine Vierecke?</h2>
-<p>Drei Punkte liegen immer in einer Ebene, das Dreieck ist also immer flach. Vier Punkte liegen dagegen nicht immer in einer Ebene, ein „Viereck“ kann geknickt sein. Eine Grafikkarte, die nur mit Dreiecken rechnet, hat es deshalb einfach: Alles ist flach und eindeutig.</p>
-<figure><img src="img/s1-netz.png" alt="Die Ritterin als Dreiecksnetz" style="max-width:300px"><figcaption>Auch die Ritterin ist ein Netz aus Dreiecken. Je mehr Dreiecke, desto glatter wirkt sie.</figcaption></figure>
-<h2>Haare sind ein Sonderfall</h2>
-<p>Einzelne Haare kann ein Spiel nicht berechnen, das wären Millionen. Stattdessen werden Haare aus <b>schmalen Bändern</b> gebaut, die jeweils eine ganze Strähne darstellen. Auch die Zöpfe der Ritterin bestehen aus solchen Bändern.</p>
-<h2>Das Aussehen: Texturen</h2>
-<p>Ein Dreieck selbst ist nur eine Fläche. Damit es nach Stoff oder Metall aussieht, legt man ein Bild darauf, eine <b>Textur</b>. Das ist wie Geschenkpapier, das über die Dreiecke gespannt wird.</p>
-<div class="merke"><b>Merke:</b> Jede 3D-Figur besteht aus vielen Dreiecken. Die Eckpunkte legen die Form fest, eine Textur legt das Aussehen fest.</div>
-<div class="quiz" data-q="Warum zerlegt man ein Viereck in Dreiecke?" data-c="0" data-why="Drei Punkte sind immer eben, vier nicht."><ul><li>Vier Punkte liegen nicht immer in einer Ebene.</li><li>Dreiecke sehen schöner aus.</li><li>Vierecke kann der Rechner nicht speichern.</li></ul></div>
-<div class="quiz" data-q="Wie viele Dreiecke hat ein Würfel mindestens?" data-c="1" data-why="6 Seiten mit je 2 Dreiecken."><ul><li>6</li><li>12</li><li>8</li></ul></div>
+<h3>Warum zwei Listen?</h3>
+<p>Benachbarte Dreiecke teilen sich Eckpunkte. Würde man für jedes Dreieck drei eigene Punkte speichern, bräuchte der Würfel 12 · 3 = 36 Punkte. Mit der Indexliste sind es 8. Wichtiger noch: Bewegt sich die Figur, wird jeder Eckpunkt nur einmal umgerechnet. In großen Netzen gehört ein Eckpunkt im Mittel zu etwa sechs Dreiecken.</p>
+<h3>Warum Dreiecke?</h3>
+<p>Drei Punkte liegen immer in einer Ebene. Vier Punkte tun das nicht zwingend, ein Viereck kann geknickt sein, und dann ist unklar, welche Fläche gemeint ist. Vierecke werden deshalb in zwei Dreiecke zerlegt.</p>
+<h3>Vorder- und Rückseite</h3>
+<p>Die Reihenfolge der drei Nummern legt fest, welche Seite außen ist: Hier gilt: Von außen betrachtet laufen die Ecken im Uhrzeigersinn. Dreiecke, die der Kamera ihre Rückseite zeigen, liegen bei einem geschlossenen Körper immer hinten und werden gar nicht erst gezeichnet. Das spart etwa die Hälfte der Arbeit.</p>
+<h2>Wie viele Dreiecke braucht eine Figur?</h2>
+<p>Runde Formen lassen sich mit Dreiecken nur annähern. Die Kugel unten besteht aus S Segmenten rundum und S ÷ 2 Ringen, das ergibt 2 · S · (S ÷ 2 − 1) Dreiecke.</p>
+<div class="demo">
+ <div class="bar"><label class="sl">Segmente S <input id="seg" type="range" min="4" max="48" step="2" value="8"></label><div class="tabs" id="t2" data-for><button class="on" data-m="1">mit Kanten</button><button data-m="0">ohne Kanten</button></div></div>
+ <canvas id="k" role="img" aria-label="Kugel aus Dreiecken"></canvas>
+ <div class="info" id="kinfo"></div>
+</div>
+<table><tr><th>Segmente S</th><th>8</th><th>16</th><th>32</th><th>64</th></tr><tr><td>Dreiecke</td><td>48</td><td>224</td><td>960</td><td>3 968</td></tr></table>
+<p>Verdoppelt man die Feinheit, vervierfacht sich die Zahl der Dreiecke: Sie wächst quadratisch, also O(S²). Der sichtbare Gewinn wird dabei immer kleiner. Schalte die Kanten aus und suche den Wert, ab dem du keinen Unterschied mehr siehst.</p>
+<p>Wie viele Dreiecke sinnvoll sind, hängt davon ab, wie groß die Figur auf dem Bildschirm erscheint. Ein Dreieck, das kleiner ist als ein Pixel, ist verschwendete Rechenzeit. Hauptfiguren heutiger Spiele haben Zehntausende bis über hunderttausend Dreiecke, eine ganze Szene mehrere Millionen. Kapitel 7 zeigt, wie Spiele für entfernte Objekte gröbere Fassungen verwenden.</p>
+<h2>Haare und Aussehen</h2>
+<p>Einzelne Haare zu modellieren wäre zu teuer. Haare bestehen deshalb aus schmalen Bändern, die jeweils eine ganze Strähne zeigen. Auch die Zöpfe der Ritterin bestehen aus solchen Bändern.</p>
+<p>Ein Dreieck ist zunächst nur eine Fläche. Damit es nach Metall oder Stoff aussieht, wird ein Bild darauf abgebildet, die <b>Textur</b>. Dafür speichert jeder Eckpunkt zusätzlich zwei Zahlen (u | v), die sagen, welche Stelle des Bildes zu ihm gehört. Wie daraus die Farbe jedes Pixels wird, erklärt Kapitel 4.</p>
+<div class="merke"><b>Merke:</b> Eine Figur besteht aus einer Eckenliste und einer Indexliste mit drei Nummern pro Dreieck. Der Umlaufsinn bestimmt die Vorderseite. Die Zahl der Dreiecke wächst quadratisch mit der Feinheit.</div>
+<div class="quiz" data-q="Eine Kugel mit S = 16 hat 224 Dreiecke. Wie viele sind es ungefähr bei S = 160?" data-c="1" data-why="Zehnfache Feinheit, etwa hundertfache Zahl: 2 · 160 · 79 = 25 280."><ul><li>etwa 2 240</li><li>etwa 25 000</li><li>etwa 250 000</li></ul></div><div class="quiz" data-q="Ein Netz hat 10 000 Dreiecke und 5 100 Eckpunkte. Wie viele Punkte müssten ohne Indexliste gespeichert werden?" data-c="2" data-why="Drei eigene Punkte pro Dreieck: 30 000."><ul><li>5 100</li><li>10 000</li><li>30 000</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Gib Eckenliste und Indexliste für ein Tetraeder an (vier Ecken, vier Dreiecke). Der Umlaufsinn darf hier unbeachtet bleiben.</div><summary>Lösung anzeigen</summary><div class="t">Zum Beispiel <code>ecken = [[0,0,0],[1,0,0],[0,1,0],[0,0,1]]</code> und <code>dreiecke = [[0,1,2],[0,1,3],[0,2,3],[1,2,3]]</code>. Jede Kombination aus drei der vier Ecken ist ein Dreieck.</div></details>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-const c=document.getElementById("c"),W=620,H=340,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1.2);
-const st={ax:0.5,ay:0.7,auto:true};let mode="fill";
-const cam={cx:W/2,cy:H/2,dist:10,f:10,scale:46};
+(function(){
+const c=document.getElementById("c"),W=660,H=330,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1.2);
+const st={ax:0.5,ay:0.7,auto:true};let mode="fill";const cam={cx:W/2,cy:H/2,dist:10,f:10,scale:52};
 function draw(){ctx.clearRect(0,0,W,H);M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam,mode,points:mode!=="fill"});}
 M3D.drag(c,st,draw);M3D.onTheme(draw);
-document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
- document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");draw();};
-(function loop(){if(st.auto){st.ay+=0.008;draw();}requestAnimationFrame(loop);})();
+document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){mode=b.dataset.m;draw();}});
+(function loop(){if(st.auto){st.ay+=0.006;draw();}requestAnimationFrame(loop);})();
+})();
+(function(){
+const c=document.getElementById("k"),W=660,H=360,ctx=M3D.setup(c,W,H),seg=document.getElementById("seg");
+const st={ax:0.35,ay:0.4};let lines=true,mesh;const cam={cx:W/2,cy:H/2,dist:10,f:10,scale:105};
+function draw(){const S=+seg.value;mesh=M3D.sphere(S,S/2,1.45);ctx.clearRect(0,0,W,H);
+ M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam,mode:"fill",smooth:true,lines,lw:1});
+ document.getElementById("kinfo").textContent="S = "+S+" · "+mesh.v.length+" Eckpunkte · "+mesh.t.length+" Dreiecke";}
+seg.oninput=draw;M3D.drag(c,st,draw);M3D.onTheme(draw);
+document.getElementById("t2").addEventListener("click",e=>{const b=e.target.closest("button");if(b){lines=b.dataset.m==="1";draw();}});draw();
+})();
 </script>
 </body>
 </html>

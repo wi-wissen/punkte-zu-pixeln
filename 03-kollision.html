@@ -6,58 +6,110 @@
 <title>Kollisionen – 3D-Spiele erklärt</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body data-page="4">
+<body data-page="4" data-fig="img/s3-flaechen.png" data-cap="Für den Kollisionstest wird die Figur durch einen einfachen Hüllkörper ersetzt.">
 <main>
 <div class="eyebrow">KAPITEL 3 VON 7</div>
 <h1>Kollisionen</h1>
-<p class="lead">Läuft die Spielfigur gegen eine Wand? Trifft die Kugel den Gegner? Das muss der Computer in jedem Bild für viele Objekte klären, also sehr schnell.</p>
-<p>Genaues Nachrechnen mit allen Dreiecken wäre viel zu langsam. Deshalb ersetzt man jedes Objekt durch eine einfache Hülle, die <b>Hitbox</b>: ein Quader oder eine Kugel.</p>
-<h2>Erst eine Dimension</h2>
-<p>Zwei Strecken auf einer Linie überlappen sich, wenn der Anfang der einen vor dem Ende der anderen liegt <b>und</b> umgekehrt. Mehr ist es nicht.</p>
-<h2>Dann zwei und drei Dimensionen</h2>
-<p>Bei einem Quader prüft man diese Regel einfach für jede Achse. Nur wenn sich die Bereiche in <b>x und y und z</b> überlappen, gibt es einen Treffer. Probiere es in der Demo (hier in 2D, mit x und y):</p>
+<p class="lead">Steht die Figur an der Wand? Trifft der Pfeil? Das Spiel muss in jedem Bild herausfinden, welche Objekte sich berühren. Genau prüfen ist teuer, also wird geschickt vereinfacht.</p>
+<h2>Hüllkörper statt Dreiecke</h2>
+<p>Zwei Figuren mit je 20 000 Dreiecken exakt zu vergleichen, hieße im schlimmsten Fall 20 000 · 20 000 = 400 Millionen Dreieckspaare zu testen. Stattdessen bekommt jedes Objekt einen einfachen <b>Hüllkörper</b>, der es ganz umschließt: einen Quader, dessen Kanten parallel zu den Achsen liegen, oder eine Kugel.</p>
+<p>Ein solcher Quader ist durch zwei Punkte bestimmt, die Ecke mit den kleinsten und die Ecke mit den größten Koordinaten:</p>
+<pre><code>quader = [[-1, 0, -1], [1, 2, 1]]      # [kleinste Ecke, größte Ecke]</code></pre>
+<h2>Der Überlappungstest</h2>
+<p>In einer Dimension ist ein Quader ein Intervall. Zwei Intervalle überlappen, wenn jedes beginnt, bevor das andere endet. Zwei Quader überlappen genau dann, wenn das auf <b>allen drei Achsen</b> gilt. Findet sich eine Achse, auf der die Intervalle getrennt sind, gibt es keinen Treffer.</p>
+<pre><code>def ueberlappt(a, b):
+    for achse in range(3):                      # 0 = x, 1 = y, 2 = z
+        if a[1][achse] &lt; b[0][achse] or b[1][achse] &lt; a[0][achse]:
+            return False                        # auf dieser Achse getrennt
+    return True</code></pre>
 <div class="demo">
- <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="box">Quader</button><button data-m="ball">Kugel</button></div><span>Ziehe das bewegliche Objekt</span></div>
- <canvas id="c" role="img" aria-label="Kollisionsdemo"></canvas>
+ <div class="bar"><label class="sl">x <input id="bx" type="range" min="-3" max="3" step="0.1" value="2.2"></label><label class="sl">y <input id="by" type="range" min="0" max="3" step="0.1" value="0.4"></label><label class="sl">z <input id="bz" type="range" min="-3" max="3" step="0.1" value="0.3"></label><span>Ziehen zum Drehen</span></div>
+ <canvas id="c" role="img" aria-label="Zwei Quader im Raum"></canvas>
  <div class="info" id="info"></div>
 </div>
-<p>Bei einer <b>Kugel</b> (im Bild ein Kreis) ist es noch einfacher: Berühren sich zwei Kugeln? Dann ist der Abstand der Mittelpunkte kleiner als die Summe der Radien. Das ist ein einziger Vergleich, deshalb sind Kugeln als Hitbox beliebt.</p>
-<div class="merke"><b>Merke:</b> Man prüft Kollisionen nicht mit den echten Dreiecken, sondern mit einfachen Hüllen (Quader oder Kugel). Quader: Bereiche in jeder Achse überlappen. Kugel: Abstand der Mittelpunkte kleiner als die Summe der Radien.</div>
-<div class="quiz" data-q="Zwei Quader überlappen in x und in y, aber nicht in z. Kollidieren sie?" data-c="1" data-why="Nur wenn alle Achsen überlappen, gibt es einen Treffer."><ul><li>Ja</li><li>Nein</li></ul></div>
+<p>Verschiebe den zweiten Quader. Erst wenn alle drei Achsen „überlappt“ melden, ist es ein Treffer. Der Test kostet höchstens sechs Vergleiche, unabhängig davon, wie viele Dreiecke die Figuren haben.</p>
+<h3>Kugeln</h3>
+<p>Zwei Kugeln berühren sich, wenn der Abstand ihrer Mittelpunkte höchstens so groß ist wie die Summe der Radien. Die Wurzel aus der Abstandsformel kann man sich sparen, indem man beide Seiten quadriert:</p>
+<pre><code>def kugeln_beruehren(m1, r1, m2, r2):
+    dx, dy, dz = m2[0] - m1[0], m2[1] - m1[1], m2[2] - m1[2]
+    return dx*dx + dy*dy + dz*dz &lt;= (r1 + r2) ** 2</code></pre>
+<h3>Grob, dann genau</h3>
+<p>Ein Hüllkörper ist größer als die Figur. Er kann einen Treffer melden, obwohl sich die Figuren nicht berühren, aber nie einen übersehen. Spiele prüfen deshalb in zwei Phasen: erst grob mit Hüllkörpern, und nur bei den wenigen gemeldeten Paaren genauer, etwa mit mehreren kleinen Hüllkörpern für Kopf, Rumpf und Arme.</p>
+<h2>Das eigentliche Problem: zu viele Paare</h2>
+<p>Der einzelne Test ist billig. Teuer wird die Anzahl. Wer jedes Objekt mit jedem anderen vergleicht, braucht bei n Objekten n · (n − 1) ÷ 2 Tests:</p>
+<pre><code>for i in range(n):
+    for j in range(i + 1, n):
+        if ueberlappt(huelle[i], huelle[j]):
+            melde_kollision(i, j)</code></pre>
+<table><tr><th>Objekte n</th><th>10</th><th>100</th><th>1 000</th><th>10 000</th></tr><tr><td>Tests pro Bild</td><td>45</td><td>4 950</td><td>499 500</td><td>49 995 000</td></tr></table>
+<p>Der Aufwand wächst quadratisch, O(n²). Zehnmal so viele Objekte bedeuten hundertmal so viele Tests.</p>
+<h2>Die Lösung: ein Raster</h2>
+<p>Objekte, die weit auseinanderliegen, können sich nicht berühren. Man teilt die Welt deshalb in Zellen und merkt sich für jede Zelle, welche Objekte darin liegen. Getestet wird ein Objekt nur noch gegen die Objekte in seiner eigenen und den benachbarten Zellen.</p>
+<pre><code>zellen = {}                                         # Wörterbuch: Zelle -&gt; Liste von Objekten
+for i in range(n):
+    zelle = (int(x[i] // g), int(y[i] // g))        # g = Zellengröße
+    zellen.setdefault(zelle, []).append(i)
+
+for i in range(n):
+    zx, zy = int(x[i] // g), int(y[i] // g)
+    for nx in (zx - 1, zx, zx + 1):
+        for ny in (zy - 1, zy, zy + 1):
+            for j in zellen.get((nx, ny), []):
+                if j &gt; i:
+                    teste(i, j)</code></pre>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs" data-for><button class="on" data-m="all">Alle Paare</button><button data-m="grid">Raster</button></div><label class="sl">Objekte n <input id="n" type="range" min="10" max="600" step="10" value="150"><b id="nv">150</b></label></div>
+ <canvas id="b" role="img" aria-label="Viele Kreise, Kollisionstest"></canvas>
+ <div class="info" id="binfo"></div>
+</div>
+<p>Sind die Objekte gleichmäßig verteilt, liegen in jeder Zelle nur wenige. Der Aufwand wächst dann annähernd linear mit n. Das Einsortieren kostet einen Durchlauf über alle Objekte, also O(n).</p>
+<div class="merke"><b>Merke:</b> Kollisionen werden mit Hüllkörpern geprüft: Quader überlappen, wenn ihre Intervalle auf allen drei Achsen überlappen. Alle Paare zu testen kostet O(n²). Ein Raster beschränkt die Tests auf Nachbarn.</div>
+<div class="quiz" data-q="In einer Szene bewegen sich 200 Objekte. Wie viele Tests braucht das Verfahren „Alle Paare“ pro Bild?" data-c="1" data-why="200 · 199 ÷ 2 = 19 900."><ul><li>400</li><li>19 900</li><li>40 000</li></ul></div><div class="quiz" data-q="Zwei Quader überlappen auf der x- und der y-Achse, aber nicht auf der z-Achse. Kollidieren sie?" data-c="1" data-why="Eine trennende Achse genügt, damit es keinen Treffer gibt."><ul><li>Ja</li><li>Nein</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Quader A = [[0, 0, 0], [2, 2, 2]], Quader B = [[1.5, 1, 2.5], [3, 3, 4]]. Verfolge <code>ueberlappt(A, B)</code> von Hand.</div><summary>Lösung anzeigen</summary><div class="t">x: [0; 2] und [1,5; 3] überlappen. y: [0; 2] und [1; 3] überlappen. z: [0; 2] und [2,5; 4] sind getrennt, denn 2 &lt; 2,5. Die Funktion gibt beim dritten Durchlauf False zurück.</div></details><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Was passiert mit dem Raster-Verfahren, wenn sich alle Objekte in einer einzigen Zelle drängen?</div><summary>Lösung anzeigen</summary><div class="t">Dann werden wieder alle Paare getestet, der Aufwand ist O(n²). Das Raster hilft nur, wenn die Zellengröße zur Verteilung der Objekte passt.</div></details>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-const c=document.getElementById("c"),W=620,H=320,ctx=M3D.setup(c,W,H);
-let mode="box",px=120,py=150;
-const fixed={x:340,y:110,w:150,h:110,r:60,cx:420,cy:160};
-function draw(){ctx.clearRect(0,0,W,H);
- const ac=M3D.css("--ac"),tx=M3D.css("--tx"),mu=M3D.css("--mu"),no=M3D.css("--no"),bd=M3D.css("--bd2");
- let hit,info;
- ctx.lineWidth=2.5;
- if(mode==="box"){
-  const m={x:px-45,y:py-35,w:90,h:70};
-  const ox=m.x<fixed.x+fixed.w&&fixed.x<m.x+m.w,oy=m.y<fixed.y+fixed.h&&fixed.y<m.y+m.h;hit=ox&&oy;
-  ctx.fillStyle=hit?ac:"transparent";ctx.strokeStyle=tx;
-  ctx.globalAlpha=hit?.25:1;ctx.fillStyle=ac;ctx.fillRect(fixed.x,fixed.y,fixed.w,fixed.h);ctx.globalAlpha=1;ctx.strokeRect(fixed.x,fixed.y,fixed.w,fixed.h);
-  ctx.globalAlpha=hit?.5:.25;ctx.fillStyle=ac;ctx.fillRect(m.x,m.y,m.w,m.h);ctx.globalAlpha=1;ctx.strokeRect(m.x,m.y,m.w,m.h);
-  info="x überlappt: "+(ox?"ja":"nein")+" · y überlappt: "+(oy?"ja":"nein")+" → "+(hit?"Treffer":"kein Treffer");
- }else{
-  const d=Math.hypot(px-fixed.cx,py-fixed.cy),sum=45+fixed.r;hit=d<sum;
-  ctx.strokeStyle=tx;ctx.globalAlpha=hit?.25:.12;ctx.fillStyle=ac;
-  ctx.beginPath();ctx.arc(fixed.cx,fixed.cy,fixed.r,0,7);ctx.fill();ctx.globalAlpha=1;ctx.stroke();
-  ctx.globalAlpha=hit?.5:.25;ctx.beginPath();ctx.arc(px,py,45,0,7);ctx.fill();ctx.globalAlpha=1;ctx.stroke();
-  ctx.setLineDash([5,5]);ctx.strokeStyle=mu;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(fixed.cx,fixed.cy);ctx.stroke();ctx.setLineDash([]);
-  info="Abstand der Mittelpunkte: "+Math.round(d)+" · Summe der Radien: "+sum+" → "+(hit?"Treffer":"kein Treffer");
- }
- document.getElementById("info").textContent=info;}
-let drag=false;
-c.addEventListener("pointerdown",e=>{drag=true;c.setPointerCapture(e.pointerId);mv(e);});
-c.addEventListener("pointermove",e=>{if(drag)mv(e);});c.addEventListener("pointerup",()=>drag=false);
-function mv(e){const p=M3D.pos(c,e);px=Math.max(50,Math.min(W-50,p.x));py=Math.max(40,Math.min(H-40,p.y));draw();}
-document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
- document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");draw();};
-M3D.onTheme(draw);draw();
+(function(){
+const c=document.getElementById("c"),W=660,H=400,ctx=M3D.setup(c,W,H);
+const st={ax:0.42,ay:-0.6},cam={cx:W/2,cy:H/2+50,dist:12,f:12,scale:52};
+const A=[[-1.5,0,-1],[0.5,1.6,1]],hw=[0.8,0.6,0.7];
+const P=p=>M3D.project(M3D.rotX(M3D.rotY(p,st.ay),st.ax),cam);
+function box(b,col,w){const [a,z]=b,v=[];for(let i=0;i<8;i++)v.push(P([i&1?z[0]:a[0],i&2?z[1]:a[1],i&4?z[2]:a[2]]));
+ ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();
+ [[0,1],[2,3],[4,5],[6,7],[0,2],[1,3],[4,6],[5,7],[0,4],[1,5],[2,6],[3,7]].forEach(([i,j])=>{ctx.moveTo(v[i][0],v[i][1]);ctx.lineTo(v[j][0],v[j][1]);});ctx.stroke();}
+function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),ac=M3D.css("--ac"),bd=M3D.css("--bd"),mu=M3D.css("--mu");
+ ctx.lineWidth=1;ctx.strokeStyle=bd;ctx.beginPath();for(let i=-4;i<=4;i++){let a=P([i,0,-4]),b=P([i,0,4]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);a=P([-4,0,i]);b=P([4,0,i]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}ctx.stroke();
+ ctx.font=M3D.font(700);ctx.fillStyle=mu;[["x",[4.4,0,0]],["y",[0,2.6,0]],["z",[0,0,4.4]]].forEach(([n,v])=>{const e=P(v);ctx.fillText(n,e[0],e[1]);});
+ const m=[+bx.value,+by.value+hw[1],+bz.value],B=[m.map((v,i)=>v-hw[i]),m.map((v,i)=>v+hw[i])];
+ const ov=[0,1,2].map(i=>!(A[1][i]<B[0][i]||B[1][i]<A[0][i])),hit=ov.every(v=>v);
+ box(A,tx,2);box(B,hit?ac:mu,hit?3.5:2);
+ document.getElementById("info").textContent=["x","y","z"].map((n,i)=>n+": "+(ov[i]?"überlappt":"getrennt")).join(" · ")+" → "+(hit?"Treffer":"kein Treffer");}
+const bx=document.getElementById("bx"),by=document.getElementById("by"),bz=document.getElementById("bz");
+[bx,by,bz].forEach(e=>e.oninput=draw);M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
+})();
+(function(){
+const c=document.getElementById("b"),W=660,H=360,ctx=M3D.setup(c,W,H),R=5,G=22,ns=document.getElementById("n");
+let mode="all",balls=[];
+function fill(){const n=+ns.value;document.getElementById("nv").textContent=n;
+ while(balls.length<n)balls.push({x:R+Math.random()*(W-2*R),y:R+Math.random()*(H-2*R),vx:(Math.random()-.5)*60,vy:(Math.random()-.5)*60});balls.length=n;}
+let last=performance.now();
+function loop(t){const dt=Math.min(.05,(t-last)/1000);last=t;const n=balls.length;
+ balls.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;if(b.x<R||b.x>W-R)b.vx*=-1;if(b.y<R||b.y>H-R)b.vy*=-1;b.x=Math.max(R,Math.min(W-R,b.x));b.y=Math.max(R,Math.min(H-R,b.y));b.hit=false;});
+ let tests=0;const test=(i,j)=>{tests++;const a=balls[i],b=balls[j],dx=a.x-b.x,dy=a.y-b.y;if(dx*dx+dy*dy<=4*R*R)a.hit=b.hit=true;};
+ if(mode==="all"){for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)test(i,j);}
+ else{const z=new Map(),key=(a,b)=>a*1000+b;
+  balls.forEach((b,i)=>{const k=key(Math.floor(b.x/G),Math.floor(b.y/G));(z.get(k)||z.set(k,[]).get(k)).push(i);});
+  balls.forEach((b,i)=>{const zx=Math.floor(b.x/G),zy=Math.floor(b.y/G);
+   for(let nx=zx-1;nx<=zx+1;nx++)for(let ny=zy-1;ny<=zy+1;ny++){const l=z.get(key(nx,ny));if(l)for(const j of l)if(j>i)test(i,j);}});}
+ ctx.clearRect(0,0,W,H);
+ if(mode==="grid"){ctx.strokeStyle=M3D.css("--bd");ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=W;x+=G){ctx.moveTo(x,0);ctx.lineTo(x,H);}for(let y=0;y<=H;y+=G){ctx.moveTo(0,y);ctx.lineTo(W,y);}ctx.stroke();}
+ const ac=M3D.css("--ac"),bd2=M3D.css("--bd2");
+ balls.forEach(b=>{ctx.beginPath();ctx.arc(b.x,b.y,R,0,7);ctx.fillStyle=b.hit?ac:bd2;ctx.fill();});
+ document.getElementById("binfo").textContent="Tests in diesem Bild: "+tests.toLocaleString("de")+" · alle Paare wären "+(n*(n-1)/2).toLocaleString("de");
+ requestAnimationFrame(loop);}
+ns.oninput=fill;document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b)mode=b.dataset.m;});
+fill();requestAnimationFrame(loop);
+})();
 </script>
 </body>
 </html>

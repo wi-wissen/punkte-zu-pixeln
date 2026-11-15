@@ -10,47 +10,33 @@
 <main>
 <div class="eyebrow">KAPITEL 6 VON 7</div>
 <h1>Geschichte</h1>
-<p class="lead">Die ersten 3D-Spiele bestanden nur aus Linien. Heute sehen Spiele aus wie Filme. Jede Stufe dazwischen löste ein Problem, das die vorherige übrig ließ.</p>
-<div class="demo">
- <div class="bar"><div class="tabs" id="tabs"></div></div>
- <div id="stage" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:14px">
-  <div id="vis" style="width:230px;flex:none;text-align:center"></div>
-  <div style="flex:1;min-width:240px"><div class="eyebrow" id="yr"></div><h2 id="tt" style="margin:6px 0 0;font-size:26px"></h2><p id="tx" style="margin-top:10px;font-size:18px;line-height:1.6"></p></div>
- </div>
-</div>
-<div class="merke"><b>Merke:</b> Die Entwicklung verlief in kleinen Schritten: Linien, gefüllte Flächen, Tricks für mehr Tempo, echtes 3D mit Texturen, Licht und Schatten, und heute die Kombination aus Rasterisierung und Raytracing.</div>
-<div class="quiz" data-q="Warum legt man Texturen auf Dreiecke?" data-c="0" data-why="Ein Bild auf einer Fläche ist viel billiger als viele kleine Dreiecke."><ul><li>Detail ohne viele Dreiecke</li><li>Weil Texturen Schatten berechnen</li><li>Weil Dreiecke verboten waren</li></ul></div>
+<p class="lead">Die Verfahren aus den letzten Kapiteln sind nicht auf einmal entstanden. Jede Stufe war die beste Antwort auf die Rechenleistung ihrer Zeit, und fast immer steckte eine algorithmische Idee dahinter.</p>
+<section class="stufe"><div><div class="eyebrow">UM 1980</div><h2>Nur Linien</h2><p>Die ersten 3D-Spiele wie Battlezone (1980) zeichnen nur die Kanten der Körper. Dafür genügen Kapitel 1 und die Projektion aus Kapitel 4: Eckpunkte drehen, projizieren, mit Linien verbinden. Flächen zu füllen war zu teuer, denn jedes gefüllte Pixel kostet Rechenzeit.</p><p><b>Aufwand:</b> wächst mit der Zahl der Kanten, nicht der Pixel.</p></div><div><img src="img/s2-draht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">1980ER BIS FRÜHE 1990ER</div><h2>Gefüllte Flächen</h2><p>Mit schnelleren Prozessoren werden die Dreiecke einfarbig gefüllt. Was vorn liegt, entscheidet der <b>Maleralgorithmus</b>: Die Dreiecke werden nach Entfernung sortiert und von hinten nach vorn gezeichnet, sodass nahe Flächen ferne übermalen. Das Sortieren kostet O(n · log n) und liefert Fehler, wenn sich Dreiecke durchdringen. Einen Tiefenpuffer konnte sich niemand leisten, er hätte zu viel Speicher gebraucht.</p></div><div><img src="img/s3-flaechen.png" alt=""></div></section><section class="stufe breit"><div><div class="eyebrow">1992 BIS 1993</div><h2>Der Trick mit dem Grundriss</h2><p>Wolfenstein 3D (1992) wirkt räumlich, rechnet aber in 2D. Die Welt ist ein Grundriss aus quadratischen Feldern. Für jede <b>Bildspalte</b> wird ein Strahl durch den Grundriss verfolgt, bis er auf eine Wand trifft. Je weiter die Wand entfernt ist, desto niedriger wird die Spalte gezeichnet.</p><pre><code>for spalte in range(breite):
+    winkel = blickrichtung + (spalte / breite - 0.5) * sichtfeld
+    d = 0
+    while karte[int(y + d * sin(winkel))][int(x + d * cos(winkel))] != WAND:
+        d = d + schritt
+    zeichne_wandstreifen(spalte, hoehe = bildhoehe / d)</code></pre><p><b>Aufwand:</b> ein Strahl pro Spalte, bei 320 Spalten also 320 Strahlen statt 64 000 Pixel. Der Preis: alle Wände gleich hoch, keine Räume übereinander. Doom (1993) lockerte diese Grenzen mit einer vorab berechneten Baumstruktur, die die Wände in der richtigen Reihenfolge liefert.</p><div class="demo"><div class="bar"><label class="sl">Blickrichtung <input id="ra" type="range" min="0" max="6.28" step="0.02" value="0.8"></label><span>So entsteht das Bild aus dem Grundriss</span></div><canvas id="rc" role="img" aria-label="Raycasting-Demo"></canvas></div></div></section><section class="stufe"><div><div class="eyebrow">1996</div><h2>Echtes 3D mit Texturen</h2><p>Quake (1996) baut Räume und Figuren vollständig aus texturierten Dreiecken, mit Rasterisierung und Tiefenvergleich wie in Kapitel 4. Möglich wird das durch Vorberechnung: Welche Räume von wo aus überhaupt sichtbar sind und wie das Licht auf den Wänden liegt, wird beim Erstellen der Level ausgerechnet und gespeichert. Zur Laufzeit wird nur nachgeschlagen.</p><p><b>Idee:</b> Rechenzeit gegen Speicher tauschen.</p></div><div><img src="img/s4-textur.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">AB 1996</div><h2>Grafikkarten</h2><p>Ab 1996 übernehmen eigene Grafikkarten die Rasterisierung, ab 1999 auch die Projektion der Eckpunkte. Die Verfahren bleiben dieselben, aber sie laufen jetzt parallel für viele Pixel gleichzeitig. Seit 2001 lassen sich die Berechnungen pro Eckpunkt und pro Pixel frei programmieren. Diese kleinen Programme heißen Shader. Damit werden Beleuchtung pro Pixel und Schatten aus Sicht der Lichtquelle zum Standard.</p></div><div><img src="img/s5-licht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">SEIT 2018</div><h2>Raytracing in Echtzeit</h2><p>Seit 2018 enthalten Grafikkarten Schaltungen, die den Schnitt von Strahlen mit dem Baum aus Hüllkörpern beschleunigen. Spiele kombinieren seitdem beide Verfahren: Rasterisierung für das Grundbild, Raytracing für Schatten, Spiegelungen und indirektes Licht. Weil nur wenige Strahlen pro Pixel bezahlbar sind, wird das verrauschte Ergebnis anschließend geglättet.</p></div><div><img src="img/s6-heute.png" alt=""></div></section>
+<div class="merke"><b>Merke:</b> Jede Stufe hat mit einer Idee Rechenzeit gespart: nur Kanten zeichnen, sortieren statt Tiefe speichern, in 2D rechnen, vorberechnen, parallel rechnen. Die Verfahren von heute sind die aus den Kapiteln 4 und 5.</div>
+<div class="quiz" data-q="Warum scheitert der Maleralgorithmus bei zwei Dreiecken, die sich durchdringen?" data-c="0" data-why="Es gibt keine Reihenfolge, die für alle Pixel stimmt. Der Tiefenpuffer entscheidet deshalb pro Pixel."><ul><li>Weil keines der beiden vollständig vor dem anderen liegt.</li><li>Weil Sortieren zu langsam ist.</li><li>Weil Dreiecke keine Farbe haben.</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Wolfenstein 3D lief mit 320 × 200 Pixeln. Vergleiche die Zahl der Strahlen beim Raycasting mit der Zahl der Strahlen, die ein Raytracer wie in Kapitel 5 bräuchte.</div><summary>Lösung anzeigen</summary><div class="t">Raycasting: 320 Strahlen, einer pro Spalte. Raytracing: 320 · 200 = 64 000 Kamerastrahlen und bis zu ebenso viele Schattenstrahlen. Das ist das 200- bis 400-Fache.</div></details>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-const S=[
- {y:"1970er und frühe 1980er",t:"Nur Linien",x:"Die ersten 3D-Spiele zeichneten nur die Kanten der Körper. Der Rechner war so langsam, dass mehr nicht ging. Aber man konnte schon um Objekte herumfliegen.",img:"img/s2-draht.png"},
- {y:"1980er bis frühe 1990er",t:"Gefüllte Flächen",x:"Mit mehr Rechenleistung wurden die Dreiecke einfarbig gefüllt. Die Figuren wirkten wie aus Papier gefaltet, hatten aber schon Körper.",img:"img/s3-flaechen.png"},
- {y:"1992 bis 1993",t:"Der 2.5D-Trick",x:"Für echte 3D-Welten war der Rechner noch zu langsam. Also wurde getrickst: In Spielen wie Wolfenstein 3D (1992) und Doom (1993) war die Welt eigentlich ein flacher Grundriss, und für jede Bildspalte wurde nur ausgerechnet, wie weit die Wand entfernt ist. Je weiter, desto niedriger zeichnet man sie. Dreh am Regler:",img:null},
- {y:"Mitte der 1990er",t:"Echtes 3D mit Texturen",x:"Mit Quake (1996) bestanden Räume und Figuren ganz aus Dreiecken, auf die Bilder gelegt wurden. So sah eine Mauer nach Stein aus, ohne dass jeder Stein modelliert werden musste. Räume konnten jetzt übereinander liegen.",img:"img/s4-textur.png"},
- {y:"Ende der 1990er bis 2000er",t:"Licht und Grafikkarten",x:"Spezielle Grafikkarten übernahmen das Dreieck-Füllen. Damit wurde Zeit frei für Beleuchtung und Schatten. Die Welten wirkten glatter und echter.",img:"img/s5-licht.png"},
- {y:"Heute",t:"Rasterisierung und Raytracing",x:"Moderne Spiele mischen beide Verfahren aus Kapitel 5: schnelle Rasterisierung für das meiste und Raytracing für realistisches Licht, Schatten und Spiegelungen.",img:"img/s6-heute.png"}];
-const tabs=document.getElementById("tabs"),vis=document.getElementById("vis");
-tabs.innerHTML=S.map((s,i)=>`<button data-i="${i}">${i+1}</button>`).join("");
 const MAP=["##########","#........#","#..##....#","#..#.....#","#........#","#....###.#","#........#","#.##.....#","#........#","##########"];
-let cv=null,ang=0.8;
-function ray(){
- const ctx=cv.getContext("2d"),W=230,H=300,px=1.5,py=1.5,fov=1.1;
- ctx.fillStyle=M3D.css("--bd");ctx.fillRect(0,0,W,H/2);ctx.fillStyle=M3D.css("--bg");ctx.fillRect(0,H/2,W,H/2);
- const col=M3D.css("--c3");
- for(let x=0;x<W;x+=2){const a=ang+(x/W-0.5)*fov,dx=Math.cos(a),dy=Math.sin(a);
-  let t=0.02,hit=false;while(t<12&&!hit){t+=0.02;const mx=Math.floor(px+dx*t),my=Math.floor(py+dy*t);if(MAP[my][mx]==="#")hit=true;}
-  const d=t*Math.cos(a-ang),h=Math.min(H,H/d*0.9),k=Math.max(0.25,1-d/9);
-  ctx.globalAlpha=k;ctx.fillStyle=col;ctx.fillRect(x,(H-h)/2,2,h);ctx.globalAlpha=1;}}
-function show(i){
- const s=S[i];document.getElementById("yr").textContent=s.y.toUpperCase();document.getElementById("tt").textContent=s.t;document.getElementById("tx").textContent=s.x;
- tabs.querySelectorAll("button").forEach((b,j)=>b.className=j===i?"on":"");
- if(s.img){vis.innerHTML=`<img src="${s.img}" alt="${s.t}" style="max-height:340px;max-width:100%">`;cv=null;}
- else{vis.innerHTML='<canvas id="rc" style="width:230px;height:300px;display:block"></canvas><input id="ra" type="range" min="0" max="6.28" step="0.02" value="'+ang+'" style="width:100%;margin-top:8px" aria-label="Blickrichtung">';
-  cv=document.getElementById("rc");const ctx=M3D.setup(cv,230,300);cv.w=230;cv.h=300;ray();document.getElementById("ra").oninput=e=>{ang=+e.target.value;ray();};}}
-tabs.onclick=e=>{const b=e.target.closest("button");if(b)show(+b.dataset.i);};
-M3D.onTheme(()=>{if(cv)ray();});show(0);
+const cv=document.getElementById("rc"),W=660,H=250,ctx=M3D.setup(cv,W,H),ra=document.getElementById("ra");
+function ray(){const ang=+ra.value,px=1.5,py=1.5,fov=1.1,VW=W-H-20,col=M3D.css("--c3"),bg=M3D.css("--bg"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),ac=M3D.css("--ac");
+ ctx.clearRect(0,0,W,H);ctx.fillStyle=bd;ctx.fillRect(0,0,VW,H/2);
+ const S=H/10,MX=VW+20;
+ for(let y=0;y<10;y++)for(let x=0;x<10;x++){if(MAP[y][x]==="#"){ctx.fillStyle=col;ctx.fillRect(MX+x*S,y*S,S,S);}}
+ ctx.strokeStyle=ac;ctx.lineWidth=1;ctx.globalAlpha=.5;ctx.beginPath();
+ for(let x=0;x<VW;x+=2){const a=ang+(x/VW-.5)*fov,dx=Math.cos(a),dy=Math.sin(a);let t=0;
+  while(t<14){t+=.02;if(MAP[Math.floor(py+dy*t)][Math.floor(px+dx*t)]==="#")break;}
+  const d=t*Math.cos(a-ang),h=Math.min(H,H/d*.9),k=Math.max(.25,1-d/9);
+  ctx.globalAlpha=1;ctx.fillStyle=M3D.mix(bg,col,k);ctx.fillRect(x,(H-h)/2,2,h);
+  if(x%24===0){ctx.globalAlpha=.6;ctx.moveTo(MX+px*S,py*S);ctx.lineTo(MX+(px+dx*t)*S,(py+dy*t)*S);}}
+ ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=tx;ctx.beginPath();ctx.arc(MX+px*S,py*S,4,0,7);ctx.fill();}
+ra.oninput=ray;M3D.onTheme(ray);ray();
 </script>
 </body>
 </html>
