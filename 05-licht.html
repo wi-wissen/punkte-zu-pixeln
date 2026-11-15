@@ -12,16 +12,16 @@
 <h1>Licht und Schatten</h1>
 <p class="lead">Licht entscheidet, ob eine Szene flach oder räumlich wirkt. Es gibt zwei Wege, es zu berechnen.</p>
 <h2>Weg 1: Helligkeit nach Winkel</h2>
-<p>Eine Fläche ist umso heller, je direkter das Licht auf sie fällt. Fällt es senkrecht darauf, ist sie am hellsten, streift es nur, ist sie dunkel. Der Computer rechnet dafür pro Dreieck den Winkel zwischen Fläche und Licht aus. Das geht blitzschnell, ist aber eine <b>Täuschung</b>: Ein Schatten wirft so noch nichts.</p>
+<p>Eine Fläche ist umso heller, je direkter das Licht auf sie fällt. Fällt es senkrecht darauf, ist sie am hellsten, streift es nur, ist sie dunkel. Der Computer rechnet dafür pro Dreieck den Winkel zwischen Fläche und Licht aus. Das geht blitzschnell, hat aber eine Lücke: Ob etwas im Weg steht, wird nicht geprüft. Ein Schatten entsteht so nicht von selbst, Spiele müssen ihn mit zusätzlichen Tricks <b>vortäuschen</b>.</p>
 <h2>Weg 2: Raytracing</h2>
-<p>Beim Raytracing schickt der Computer für <b>jedes Pixel einen Lichtstrahl</b> in die Szene. Er sucht, was der Strahl trifft. Dann schickt er vom Treffpunkt einen zweiten Strahl zur Lampe. Liegt etwas dazwischen, ist der Punkt im Schatten. Das sieht sehr realistisch aus, kostet aber viel Rechenzeit. Wechsle zwischen den Wegen und bewege das Licht:</p>
+<p>Beim Raytracing schickt der Computer für <b>jedes Pixel einen Strahl</b> von der Kamera in die Szene. Er sucht, was der Strahl trifft. Dann schickt er vom Treffpunkt einen zweiten Strahl zur Lampe. Liegt etwas dazwischen, ist der Punkt im Schatten. Das sieht sehr realistisch aus, kostet aber viel Rechenzeit. Wechsle zwischen den Wegen und bewege das Licht:</p>
 <div class="demo">
  <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="angle">Nur Winkel</button><button data-m="ray">Raytracing mit Schatten</button></div><label class="sl">Licht <input id="a" type="range" min="-80" max="80" value="-40"></label></div>
  <canvas id="c" role="img" aria-label="Kugel auf einer Fläche, beleuchtet"></canvas>
  <div class="info" id="info"></div>
 </div>
 <p>Moderne Spiele mischen beides: Das meiste wird schnell nach Winkel gerechnet, und Raytracing kommt nur dort dazu, wo es viel bringt, zum Beispiel für Schatten und Spiegelungen.</p>
-<div class="merke"><b>Merke:</b> Rasterisierung berechnet Licht nach dem Winkel und ist schnell, aber vorgetäuscht. Raytracing verfolgt einen Strahl pro Pixel und liefert echte Schatten, kostet aber viel Zeit.</div>
+<div class="merke"><b>Merke:</b> Rasterisierung berechnet Licht nach dem Winkel und ist schnell, Schatten muss sie aber vortäuschen. Raytracing verfolgt einen Strahl pro Pixel und liefert echte Schatten, kostet aber viel Zeit.</div>
 <div class="quiz" data-q="Was fehlt, wenn man Licht nur nach dem Winkel berechnet?" data-c="1" data-why="Ob etwas im Weg steht, wird dabei nicht geprüft."><ul><li>Die Farbe</li><li>Der Schatten</li><li>Die Form</li></ul></div>
 <div class="quiz" data-q="Ein Bild hat 1920 × 1080 Pixel. Wie viele Strahlen braucht Raytracing mindestens?" data-c="2" data-why="Ein Strahl pro Pixel: etwa 2 Millionen, und das 60-mal pro Sekunde."><ul><li>1920</li><li>1080</li><li>etwa 2 Millionen</li></ul></div>
 </main>

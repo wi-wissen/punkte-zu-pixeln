@@ -18,8 +18,8 @@
   <div style="flex:1;min-width:240px"><div class="eyebrow" id="yr"></div><h2 id="tt" style="margin:6px 0 0;font-size:26px"></h2><p id="tx" style="margin-top:10px;font-size:18px;line-height:1.6"></p></div>
  </div>
 </div>
-<div class="merke"><b>Merke:</b> Die Entwicklung verlief in kleinen Schritten: Linien, gefüllte Flächen, Tricks für mehr Tempo, Texturen, Licht und Schatten, und heute die Kombination aus Rasterisierung und Raytracing.</div>
-<div class="quiz" data-q="Warum nutzten frühe Spiele Texturen?" data-c="0" data-why="Ein Bild auf einer Fläche ist viel billiger als viele kleine Dreiecke."><ul><li>Detail ohne viele Dreiecke</li><li>Weil Texturen Schatten berechnen</li><li>Weil Dreiecke verboten waren</li></ul></div>
+<div class="merke"><b>Merke:</b> Die Entwicklung verlief in kleinen Schritten: Linien, gefüllte Flächen, Tricks für mehr Tempo, echtes 3D mit Texturen, Licht und Schatten, und heute die Kombination aus Rasterisierung und Raytracing.</div>
+<div class="quiz" data-q="Warum legt man Texturen auf Dreiecke?" data-c="0" data-why="Ein Bild auf einer Fläche ist viel billiger als viele kleine Dreiecke."><ul><li>Detail ohne viele Dreiecke</li><li>Weil Texturen Schatten berechnen</li><li>Weil Dreiecke verboten waren</li></ul></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
@@ -27,8 +27,8 @@
 const S=[
  {y:"1970er und frühe 1980er",t:"Nur Linien",x:"Die ersten 3D-Spiele zeichneten nur die Kanten der Körper. Der Rechner war so langsam, dass mehr nicht ging. Aber man konnte schon um Objekte herumfliegen.",img:"img/s2-draht.png"},
  {y:"1980er bis frühe 1990er",t:"Gefüllte Flächen",x:"Mit mehr Rechenleistung wurden die Dreiecke einfarbig gefüllt. Die Figuren wirkten wie aus Papier gefaltet, hatten aber schon Körper.",img:"img/s3-flaechen.png"},
- {y:"1992 bis 1993",t:"Der 2.5D-Trick",x:"Für echte 3D-Welten war der Rechner noch zu langsam. Also wurde getrickst: Die Welt war eigentlich ein flacher Grundriss, und für jede Bildspalte wurde nur ausgerechnet, wie weit die Wand entfernt ist. Je weiter, desto niedriger zeichnet man sie. Dreh am Regler:",img:null},
- {y:"Mitte der 1990er",t:"Texturen",x:"Bilder wurden auf die Flächen gelegt. So sah eine Mauer nach Stein aus, ohne dass jeder Stein modelliert werden musste. Echte 3D-Welten mit Räumen auf mehreren Ebenen waren jetzt möglich.",img:"img/s4-textur.png"},
+ {y:"1992 bis 1993",t:"Der 2.5D-Trick",x:"Für echte 3D-Welten war der Rechner noch zu langsam. Also wurde getrickst: In Spielen wie Wolfenstein 3D (1992) und Doom (1993) war die Welt eigentlich ein flacher Grundriss, und für jede Bildspalte wurde nur ausgerechnet, wie weit die Wand entfernt ist. Je weiter, desto niedriger zeichnet man sie. Dreh am Regler:",img:null},
+ {y:"Mitte der 1990er",t:"Echtes 3D mit Texturen",x:"Mit Quake (1996) bestanden Räume und Figuren ganz aus Dreiecken, auf die Bilder gelegt wurden. So sah eine Mauer nach Stein aus, ohne dass jeder Stein modelliert werden musste. Räume konnten jetzt übereinander liegen.",img:"img/s4-textur.png"},
  {y:"Ende der 1990er bis 2000er",t:"Licht und Grafikkarten",x:"Spezielle Grafikkarten übernahmen das Dreieck-Füllen. Damit wurde Zeit frei für Beleuchtung und Schatten. Die Welten wirkten glatter und echter.",img:"img/s5-licht.png"},
  {y:"Heute",t:"Rasterisierung und Raytracing",x:"Moderne Spiele mischen beide Verfahren aus Kapitel 5: schnelle Rasterisierung für das meiste und Raytracing für realistisches Licht, Schatten und Spiegelungen.",img:"img/s6-heute.png"}];
 const tabs=document.getElementById("tabs"),vis=document.getElementById("vis");

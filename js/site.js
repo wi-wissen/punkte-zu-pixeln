@@ -35,7 +35,7 @@ if(page>0){
   main.append(p);
 }
 const f=document.createElement("footer");
-f.innerHTML='Lizenz: <a href="https://creativecommons.org/licenses/by/4.0/deed.de">CC BY 4.0</a> · <a href="https://github.com/wi-wissen/punkte-zu-pixeln">Quelltext auf GitHub</a>';
+f.innerHTML='Lizenz: <a href="https://creativecommons.org/licenses/by/4.0/deed.de">CC BY 4.0</a> · <a href="https://github.com/wi-wissen/punkte-zu-pixeln">Quelltext auf GitHub</a> · Die Bilder der Ritterin wurden mit KI erzeugt.';
 document.body.append(f);
 // Verständnisfragen:  <div class="quiz" data-q="…" data-c="1" data-why="…"><i>Antwort A</i> …
 document.querySelectorAll(".quiz").forEach(q=>{

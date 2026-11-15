@@ -14,7 +14,7 @@
 <h2>Schritt 1: Weit weg heißt klein</h2>
 <p>Jeder Punkt (x | y | z) wird auf den Bildschirm abgebildet. Dafür teilt man durch die Tiefe z:</p>
 <p style="text-align:center;font-size:24px;font-weight:700">x′ = x · f ÷ z &nbsp;&nbsp; y′ = y · f ÷ z</p>
-<p>f ist ein fester Wert der Kamera (die Brennweite). Je größer z ist, desto kleiner wird das Ergebnis, der Punkt rückt zur Bildmitte. Genau so entsteht Perspektive. Ziehe den Würfel weg von der Kamera:</p>
+<p>f ist ein fester Wert der Kamera (die Brennweite). Je größer z ist, desto kleiner wird das Ergebnis, der Punkt rückt zur Bildmitte. Genau so entsteht Perspektive. Schiebe den Würfel mit dem Regler von der Kamera weg (hier ist f = 9):</p>
 <div class="demo">
  <div class="bar"><label class="sl">Abstand z <input id="d" type="range" min="5" max="24" step="0.1" value="9"></label><span>Ziehen zum Drehen</span></div>
  <canvas id="c" role="img" aria-label="Würfel in verschiedenem Abstand"></canvas>
@@ -42,7 +42,7 @@ const st={ax:0.5,ay:0.6},d=document.getElementById("d");
 function draw(){ctx.clearRect(0,0,W,H);
  const cam={cx:W/2,cy:H/2,dist:+d.value,f:9,scale:46};
  M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam,mode:"fill"});
- document.getElementById("info").textContent="Abstand z = "+(+d.value).toFixed(1)+" → Größe auf dem Bildschirm ∝ 1 ÷ z = "+(1/d.value).toFixed(2);}
+ document.getElementById("info").textContent="Abstand z = "+(+d.value).toFixed(1)+" · Vergrößerung f ÷ z = 9 ÷ "+(+d.value).toFixed(1)+" = "+(9/d.value).toFixed(2);}
 d.oninput=draw;M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
 })();
 (function(){
