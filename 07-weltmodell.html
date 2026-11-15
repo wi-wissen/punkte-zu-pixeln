@@ -117,7 +117,7 @@ function pal(){const bg=M3D.css("--bg"),mu=M3D.css("--mu"),dark=M3D.hex(bg)[0]<1
  return t=>t===1?[M3D.css("--c1"),M3D.css("--c2"),M3D.css("--c3")]:(dark?st.slice().reverse():st);}
 function isoDemo(cid,pre,nb){const c=$(cid),W=660,H=370,ctx=M3D.setup(c,W,H),s=["x","y","z"].map(k=>$(pre+k));
  function draw(){ctx.clearRect(0,0,W,H);const m=s.map(e=>+e.value),t=world(...m);
-  M3D.iso(ctx,world,[DX,DY,DZ],{ox:W/2,oy:118,s:27,pal:pal(),line:M3D.css("--ik"),mark:m,markCol:M3D.css("--tx")});
+  M3D.iso(ctx,world,[DX,DY,DZ],{ox:W/2,oy:132,s:26,pal:pal(),line:M3D.css("--ik"),mark:m,markCol:M3D.css("--tx")});
   if(!nb){$(cid+"i").textContent="welt["+m[0]+"]["+m[1]+"]["+m[2]+"] = "+NAMES[t];return;}
   if(!t){$(cid+"i").textContent="An der Stelle ("+m.join(" | ")+") ist Luft. Luft hat keine Seiten, es gibt nichts zu prüfen.";return;}
   let n=0;const rows=[["rechts",1,0,0],["links",-1,0,0],["oben",0,1,0],["unten",0,-1,0],["vorn",0,0,1],["hinten",0,0,-1]].map(([nm,dx,dy,dz])=>{const q=m[1]+dy<0?3:world(m[0]+dx,m[1]+dy,m[2]+dz);if(!q)n++;return nm+": "+NAMES[q]+(q?"":" ✓");});
