@@ -93,7 +93,7 @@ anteil_c  = kante(a, b, p) / flaeche</code></pre></details>
 
 <h2 id="tiefenpuffer">Schritt 4: Der Tiefenpuffer</h2>
 <p>Bisher wurde jedes Dreieck für sich gezeichnet. In einer Szene liegen aber viele Dreiecke hintereinander, und mehrere können dasselbe Pixel bedecken. Sichtbar sein darf nur das vorderste.</p>
-<p>Das fertige Bild ist eine Tabelle: Für jedes Pixel ist eine Farbe gespeichert. Der <b>Tiefenpuffer</b> ist eine zweite Tabelle mit genauso vielen Zeilen und Spalten. In ihr steht für jedes Pixel keine Farbe, sondern eine Zahl: <b>wie weit das entfernt ist, was an diesem Pixel gerade zu sehen ist</b>. Am Anfang steht überall „unendlich weit“.</p>
+<p>Das fertige Bild auf dem Bildschirm ist eine Tabelle mit einer Zelle pro Pixel. Bei einer Auflösung von 1920 × 1080 hat sie 1080 Zeilen mit je 1920 Spalten, und in jeder Zelle steht eine Farbe. Der <b>Tiefenpuffer</b> ist eine zweite Tabelle derselben Größe, also ebenfalls mit einer Zelle für jedes Pixel des Bildschirms. In ihr steht aber keine Farbe, sondern eine Zahl: <b>wie weit das entfernt ist, was an diesem Pixel gerade zu sehen ist</b>. Am Anfang steht überall „unendlich weit“.</p>
 <p>Die Regel beim Zeichnen lautet: Ein Pixel wird nur dann neu gefärbt, wenn das neue Dreieck dort <b>näher</b> ist als der Wert im Tiefenpuffer. Dann wird auch die neue Entfernung eingetragen.</p>
 <div class="demo">
  <div class="bar"><span><button class="btn" id="zb0">Zurück</button> <button class="btn" id="zb1">Weiter</button></span><span id="zbs"></span></div>
