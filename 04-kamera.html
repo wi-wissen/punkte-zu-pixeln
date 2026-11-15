@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kamera und Pixel – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="5">
+<main>
+<div class="eyebrow">KAPITEL 4 VON 7</div>
+<h1>Kamera und Pixel</h1>
+<p class="lead">Der Bildschirm ist flach. Wie wird aus Punkten im Raum ein Bild?</p>
+<h2>Schritt 1: Weit weg heißt klein</h2>
+<p>Jeder Punkt (x | y | z) wird auf den Bildschirm abgebildet. Dafür teilt man durch die Tiefe z:</p>
+<p style="text-align:center;font-size:24px;font-weight:700">x′ = x · f ÷ z &nbsp;&nbsp; y′ = y · f ÷ z</p>
+<p>f ist ein fester Wert der Kamera (die Brennweite). Je größer z ist, desto kleiner wird das Ergebnis, der Punkt rückt zur Bildmitte. Genau so entsteht Perspektive. Ziehe den Würfel weg von der Kamera:</p>
+<div class="demo">
+ <div class="bar"><label class="sl">Abstand z <input id="d" type="range" min="5" max="24" step="0.1" value="9"></label><span>Ziehen zum Drehen</span></div>
+ <canvas id="c" role="img" aria-label="Würfel in verschiedenem Abstand"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<h2>Schritt 2: Pixel füllen</h2>
+<p>Nach Schritt 1 kennt der Computer die drei Eckpunkte jedes Dreiecks auf dem Bildschirm. Jetzt muss er entscheiden, welche Pixel zum Dreieck gehören. Man nennt das <b>Rasterisierung</b>: Das Dreieck wird auf das Pixelraster gelegt, und jedes Pixel prüft, ob sein Mittelpunkt im Dreieck liegt. Ziehe die Ecken:</p>
+<div class="demo">
+ <div class="bar"><span>Ziehe die drei Ecken des Dreiecks</span></div>
+ <canvas id="r" role="img" aria-label="Rasterisierung eines Dreiecks"></canvas>
+ <div class="info" id="rinfo"></div>
+</div>
+<h2>Schritt 3: Was liegt vorn?</h2>
+<p>Liegen mehrere Dreiecke hintereinander, darf nur das vorderste sichtbar sein. Dafür merkt sich die Grafikkarte zu jedem Pixel die Tiefe des bisher nächsten Dreiecks, den <b>Tiefenpuffer</b>. Ein neues Dreieck überschreibt das Pixel nur, wenn es näher dran ist.</p>
+<div class="merke"><b>Merke:</b> Erst werden die Eckpunkte auf den Bildschirm projiziert (durch die Tiefe teilen), dann werden die Pixel der Dreiecke gefüllt (Rasterisierung). Der Tiefenpuffer entscheidet, was vorn liegt.</div>
+<div class="quiz" data-q="Ein Baum steht doppelt so weit weg. Wie groß erscheint er?" data-c="0" data-why="Wir teilen durch z, doppeltes z ergibt halbe Größe."><ul><li>halb so groß</li><li>gleich groß</li><li>doppelt so groß</li></ul></div>
+<div class="quiz" data-q="Was macht der Tiefenpuffer?" data-c="2" data-why="Er speichert pro Pixel, wie nah das bisher gezeichnete Dreieck ist."><ul><li>Er speichert die Farbe der Pixel.</li><li>Er verschiebt die Kamera.</li><li>Er merkt sich pro Pixel, was am nächsten liegt.</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+(function(){
+const c=document.getElementById("c"),W=620,H=300,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1);
+const st={ax:0.5,ay:0.6},d=document.getElementById("d");
+function draw(){ctx.clearRect(0,0,W,H);
+ const cam={cx:W/2,cy:H/2,dist:+d.value,f:9,scale:46};
+ M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam,mode:"fill"});
+ document.getElementById("info").textContent="Abstand z = "+(+d.value).toFixed(1)+" → Größe auf dem Bildschirm ∝ 1 ÷ z = "+(1/d.value).toFixed(2);}
+d.oninput=draw;M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
+})();
+(function(){
+const c=document.getElementById("r"),N=22,M=13,S=28,W=N*S,H=M*S,ctx=M3D.setup(c,W,H);
+const v=[[3.2,10],[17.5,11.5],[9,1.8]];let sel=-1;
+const edge=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+function draw(){ctx.clearRect(0,0,W,H);
+ const ac=M3D.css("--ac"),bd=M3D.css("--bd"),tx=M3D.css("--tx");let n=0;
+ for(let y=0;y<M;y++)for(let x=0;x<N;x++){const p=[x+.5,y+.5];
+  const e=[edge(v[0],v[1],p),edge(v[1],v[2],p),edge(v[2],v[0],p)];
+  const inside=e.every(q=>q>=0)||e.every(q=>q<=0);
+  if(inside){n++;ctx.fillStyle=ac;ctx.globalAlpha=.55;ctx.fillRect(x*S+1,y*S+1,S-2,S-2);ctx.globalAlpha=1;}
+  else{ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(x*S+.5,y*S+.5,S-1,S-1);}}
+ ctx.beginPath();v.forEach((q,i)=>i?ctx.lineTo(q[0]*S,q[1]*S):ctx.moveTo(q[0]*S,q[1]*S));ctx.closePath();ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.stroke();
+ v.forEach(q=>{ctx.beginPath();ctx.arc(q[0]*S,q[1]*S,9,0,7);ctx.fillStyle=tx;ctx.fill();});
+ document.getElementById("rinfo").textContent=n+" Pixel gehören zum Dreieck";}
+c.addEventListener("pointerdown",e=>{const p=M3D.pos(c,e);sel=v.findIndex(q=>Math.hypot(q[0]*S-p.x,q[1]*S-p.y)<24);if(sel>=0)c.setPointerCapture(e.pointerId);});
+c.addEventListener("pointermove",e=>{if(sel<0)return;const p=M3D.pos(c,e);v[sel]=[Math.max(0,Math.min(N,p.x/S)),Math.max(0,Math.min(M,p.y/S))];draw();});
+c.addEventListener("pointerup",()=>sel=-1);M3D.onTheme(draw);draw();
+})();
+</script>
+</body>
+</html>

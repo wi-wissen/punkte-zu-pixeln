@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kollisionen – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="4">
+<main>
+<div class="eyebrow">KAPITEL 3 VON 7</div>
+<h1>Kollisionen</h1>
+<p class="lead">Läuft die Spielfigur gegen eine Wand? Trifft die Kugel den Gegner? Das muss der Computer in jedem Bild für viele Objekte klären, also sehr schnell.</p>
+<p>Genaues Nachrechnen mit allen Dreiecken wäre viel zu langsam. Deshalb ersetzt man jedes Objekt durch eine einfache Hülle, die <b>Hitbox</b>: ein Quader oder eine Kugel.</p>
+<h2>Erst eine Dimension</h2>
+<p>Zwei Strecken auf einer Linie überlappen sich, wenn der Anfang der einen vor dem Ende der anderen liegt <b>und</b> umgekehrt. Mehr ist es nicht.</p>
+<h2>Dann zwei und drei Dimensionen</h2>
+<p>Bei einem Quader prüft man diese Regel einfach für jede Achse. Nur wenn sich die Bereiche in <b>x und y und z</b> überlappen, gibt es einen Treffer. Probiere es in der Demo (hier in 2D, mit x und y):</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="box">Quader</button><button data-m="ball">Kugel</button></div><span>Ziehe das bewegliche Objekt</span></div>
+ <canvas id="c" role="img" aria-label="Kollisionsdemo"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<p>Bei einer <b>Kugel</b> (im Bild ein Kreis) ist es noch einfacher: Berühren sich zwei Kugeln? Dann ist der Abstand der Mittelpunkte kleiner als die Summe der Radien. Das ist ein einziger Vergleich, deshalb sind Kugeln als Hitbox beliebt.</p>
+<div class="merke"><b>Merke:</b> Man prüft Kollisionen nicht mit den echten Dreiecken, sondern mit einfachen Hüllen (Quader oder Kugel). Quader: Bereiche in jeder Achse überlappen. Kugel: Abstand der Mittelpunkte kleiner als die Summe der Radien.</div>
+<div class="quiz" data-q="Zwei Quader überlappen in x und in y, aber nicht in z. Kollidieren sie?" data-c="1" data-why="Nur wenn alle Achsen überlappen, gibt es einen Treffer."><ul><li>Ja</li><li>Nein</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const c=document.getElementById("c"),W=620,H=320,ctx=M3D.setup(c,W,H);
+let mode="box",px=120,py=150;
+const fixed={x:340,y:110,w:150,h:110,r:60,cx:420,cy:160};
+function draw(){ctx.clearRect(0,0,W,H);
+ const ac=M3D.css("--ac"),tx=M3D.css("--tx"),mu=M3D.css("--mu"),no=M3D.css("--no"),bd=M3D.css("--bd2");
+ let hit,info;
+ ctx.lineWidth=2.5;
+ if(mode==="box"){
+  const m={x:px-45,y:py-35,w:90,h:70};
+  const ox=m.x<fixed.x+fixed.w&&fixed.x<m.x+m.w,oy=m.y<fixed.y+fixed.h&&fixed.y<m.y+m.h;hit=ox&&oy;
+  ctx.fillStyle=hit?ac:"transparent";ctx.strokeStyle=tx;
+  ctx.globalAlpha=hit?.25:1;ctx.fillStyle=ac;ctx.fillRect(fixed.x,fixed.y,fixed.w,fixed.h);ctx.globalAlpha=1;ctx.strokeRect(fixed.x,fixed.y,fixed.w,fixed.h);
+  ctx.globalAlpha=hit?.5:.25;ctx.fillStyle=ac;ctx.fillRect(m.x,m.y,m.w,m.h);ctx.globalAlpha=1;ctx.strokeRect(m.x,m.y,m.w,m.h);
+  info="x überlappt: "+(ox?"ja":"nein")+" · y überlappt: "+(oy?"ja":"nein")+" → "+(hit?"Treffer":"kein Treffer");
+ }else{
+  const d=Math.hypot(px-fixed.cx,py-fixed.cy),sum=45+fixed.r;hit=d<sum;
+  ctx.strokeStyle=tx;ctx.globalAlpha=hit?.25:.12;ctx.fillStyle=ac;
+  ctx.beginPath();ctx.arc(fixed.cx,fixed.cy,fixed.r,0,7);ctx.fill();ctx.globalAlpha=1;ctx.stroke();
+  ctx.globalAlpha=hit?.5:.25;ctx.beginPath();ctx.arc(px,py,45,0,7);ctx.fill();ctx.globalAlpha=1;ctx.stroke();
+  ctx.setLineDash([5,5]);ctx.strokeStyle=mu;ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(fixed.cx,fixed.cy);ctx.stroke();ctx.setLineDash([]);
+  info="Abstand der Mittelpunkte: "+Math.round(d)+" · Summe der Radien: "+sum+" → "+(hit?"Treffer":"kein Treffer");
+ }
+ document.getElementById("info").textContent=info;}
+let drag=false;
+c.addEventListener("pointerdown",e=>{drag=true;c.setPointerCapture(e.pointerId);mv(e);});
+c.addEventListener("pointermove",e=>{if(drag)mv(e);});c.addEventListener("pointerup",()=>drag=false);
+function mv(e){const p=M3D.pos(c,e);px=Math.max(50,Math.min(W-50,p.x));py=Math.max(40,Math.min(H-40,p.y));draw();}
+document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
+ document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");draw();};
+M3D.onTheme(draw);draw();
+</script>
+</body>
+</html>

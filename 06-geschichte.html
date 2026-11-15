@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Geschichte – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="7">
+<main>
+<div class="eyebrow">KAPITEL 6 VON 7</div>
+<h1>Geschichte</h1>
+<p class="lead">Die ersten 3D-Spiele bestanden nur aus Linien. Heute sehen Spiele aus wie Filme. Jede Stufe dazwischen löste ein Problem, das die vorherige übrig ließ.</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs"></div></div>
+ <div id="stage" style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;margin-top:14px">
+  <div id="vis" style="width:230px;flex:none;text-align:center"></div>
+  <div style="flex:1;min-width:240px"><div class="eyebrow" id="yr"></div><h2 id="tt" style="margin:6px 0 0;font-size:26px"></h2><p id="tx" style="margin-top:10px;font-size:18px;line-height:1.6"></p></div>
+ </div>
+</div>
+<div class="merke"><b>Merke:</b> Die Entwicklung verlief in kleinen Schritten: Linien, gefüllte Flächen, Tricks für mehr Tempo, Texturen, Licht und Schatten, und heute die Kombination aus Rasterisierung und Raytracing.</div>
+<div class="quiz" data-q="Warum nutzten frühe Spiele Texturen?" data-c="0" data-why="Ein Bild auf einer Fläche ist viel billiger als viele kleine Dreiecke."><ul><li>Detail ohne viele Dreiecke</li><li>Weil Texturen Schatten berechnen</li><li>Weil Dreiecke verboten waren</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const S=[
+ {y:"1970er und frühe 1980er",t:"Nur Linien",x:"Die ersten 3D-Spiele zeichneten nur die Kanten der Körper. Der Rechner war so langsam, dass mehr nicht ging. Aber man konnte schon um Objekte herumfliegen.",img:"img/s2-draht.png"},
+ {y:"1980er bis frühe 1990er",t:"Gefüllte Flächen",x:"Mit mehr Rechenleistung wurden die Dreiecke einfarbig gefüllt. Die Figuren wirkten wie aus Papier gefaltet, hatten aber schon Körper.",img:"img/s3-flaechen.png"},
+ {y:"1992 bis 1993",t:"Der 2.5D-Trick",x:"Für echte 3D-Welten war der Rechner noch zu langsam. Also wurde getrickst: Die Welt war eigentlich ein flacher Grundriss, und für jede Bildspalte wurde nur ausgerechnet, wie weit die Wand entfernt ist. Je weiter, desto niedriger zeichnet man sie. Dreh am Regler:",img:null},
+ {y:"Mitte der 1990er",t:"Texturen",x:"Bilder wurden auf die Flächen gelegt. So sah eine Mauer nach Stein aus, ohne dass jeder Stein modelliert werden musste. Echte 3D-Welten mit Räumen auf mehreren Ebenen waren jetzt möglich.",img:"img/s4-textur.png"},
+ {y:"Ende der 1990er bis 2000er",t:"Licht und Grafikkarten",x:"Spezielle Grafikkarten übernahmen das Dreieck-Füllen. Damit wurde Zeit frei für Beleuchtung und Schatten. Die Welten wirkten glatter und echter.",img:"img/s5-licht.png"},
+ {y:"Heute",t:"Rasterisierung und Raytracing",x:"Moderne Spiele mischen beide Verfahren aus Kapitel 5: schnelle Rasterisierung für das meiste und Raytracing für realistisches Licht, Schatten und Spiegelungen.",img:"img/s6-heute.png"}];
+const tabs=document.getElementById("tabs"),vis=document.getElementById("vis");
+tabs.innerHTML=S.map((s,i)=>`<button data-i="${i}">${i+1}</button>`).join("");
+const MAP=["##########","#........#","#..##....#","#..#.....#","#........#","#....###.#","#........#","#.##.....#","#........#","##########"];
+let cv=null,ang=0.8;
+function ray(){
+ const ctx=cv.getContext("2d"),W=230,H=300,px=1.5,py=1.5,fov=1.1;
+ ctx.fillStyle=M3D.css("--bd");ctx.fillRect(0,0,W,H/2);ctx.fillStyle=M3D.css("--bg");ctx.fillRect(0,H/2,W,H/2);
+ const col=M3D.css("--c3");
+ for(let x=0;x<W;x+=2){const a=ang+(x/W-0.5)*fov,dx=Math.cos(a),dy=Math.sin(a);
+  let t=0.02,hit=false;while(t<12&&!hit){t+=0.02;const mx=Math.floor(px+dx*t),my=Math.floor(py+dy*t);if(MAP[my][mx]==="#")hit=true;}
+  const d=t*Math.cos(a-ang),h=Math.min(H,H/d*0.9),k=Math.max(0.25,1-d/9);
+  ctx.globalAlpha=k;ctx.fillStyle=col;ctx.fillRect(x,(H-h)/2,2,h);ctx.globalAlpha=1;}}
+function show(i){
+ const s=S[i];document.getElementById("yr").textContent=s.y.toUpperCase();document.getElementById("tt").textContent=s.t;document.getElementById("tx").textContent=s.x;
+ tabs.querySelectorAll("button").forEach((b,j)=>b.className=j===i?"on":"");
+ if(s.img){vis.innerHTML=`<img src="${s.img}" alt="${s.t}" style="max-height:340px;max-width:100%">`;cv=null;}
+ else{vis.innerHTML='<canvas id="rc" style="width:230px;height:300px;display:block"></canvas><input id="ra" type="range" min="0" max="6.28" step="0.02" value="'+ang+'" style="width:100%;margin-top:8px" aria-label="Blickrichtung">';
+  cv=document.getElementById("rc");const ctx=M3D.setup(cv,230,300);cv.w=230;cv.h=300;ray();document.getElementById("ra").oninput=e=>{ang=+e.target.value;ray();};}}
+tabs.onclick=e=>{const b=e.target.closest("button");if(b)show(+b.dataset.i);};
+M3D.onTheme(()=>{if(cv)ray();});show(0);
+</script>
+</body>
+</html>

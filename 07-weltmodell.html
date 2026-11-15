@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Die Spielwelt – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="8">
+<main>
+<div class="eyebrow">KAPITEL 7 VON 7</div>
+<h1>Die Spielwelt</h1>
+<p class="lead">Eine ganze Welt mit Millionen Blöcken, Hügeln und Bäumen kann der Computer nicht in jedem Bild zeichnen. Er braucht ein schlaues Modell der Welt.</p>
+<h2>Die Welt als Raster</h2>
+<p>Spiele wie Minecraft teilen die Welt in gleich große Blöcke. Für jeden Platz im Raster wird nur gespeichert, <b>welcher Typ</b> dort liegt: Luft, Erde, Stein, Holz. Das ist sehr wenig Information, und der Computer findet jeden Block sofort über seine Koordinaten (x | y | z) aus Kapitel 1.</p>
+<h2>Trick 1: Nicht Sichtbares weglassen</h2>
+<p>Von einem Block im Inneren eines Berges sieht man nichts. Gezeichnet werden nur die Flächen, die an Luft grenzen.</p>
+<div class="info" id="faces" style="text-align:left;margin-top:12px"></div>
+<h2>Trick 2: Was weit weg ist, wird vereinfacht</h2>
+<p>Je weiter etwas entfernt ist, desto weniger Pixel belegt es. Dort lohnt sich ein grobes Modell, ganze Blockgruppen werden zu einem einzigen Block zusammengefasst. Man nennt das <b>Level of Detail</b>. Ziehe die Figur und schalte den Trick ein und aus:</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs"><button data-m="off">Alles fein</button><button class="on" data-m="on">Fernes vereinfachen</button></div><span>Ziehe den Punkt</span></div>
+ <canvas id="c" role="img" aria-label="Weltkarte von oben mit Detailstufen"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<div class="merke"><b>Merke:</b> Eine Spielwelt ist ein Raster aus Blöcken, von denen nur der Typ gespeichert wird. Gezeichnet wird nur, was man sehen kann, und was weit weg ist, wird grob gezeichnet.</div>
+<div class="quiz" data-q="Wie viele Zahlen braucht man, um einen Block in der Welt zu finden?" data-c="2" data-why="Drei Koordinaten (x | y | z), und dort steht der Typ."><ul><li>1</li><li>2</li><li>3</li></ul></div>
+<div class="quiz" data-q="Warum wird ein Block im Inneren eines Berges nicht gezeichnet?" data-c="0" data-why="Man sieht ihn nicht, also spart man die Arbeit."><ul><li>Er ist verdeckt und nicht sichtbar.</li><li>Er ist aus Stein.</li><li>Er liegt zu weit unten.</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const N=32,S=18,W=N*S,H=N*S,c=document.getElementById("c"),ctx=M3D.setup(c,W,H);
+const h=[];for(let y=0;y<N;y++){h[y]=[];for(let x=0;x<N;x++)h[y][x]=Math.max(1,Math.round(3+2*Math.sin(x*.35)+2*Math.cos(y*.3)+Math.sin((x+y)*.7)));}
+let px=8,py=22,lod=true;
+// Zahlen zu Trick 1
+let blocks=0,faces=0;for(let y=0;y<N;y++)for(let x=0;x<N;x++){const v=h[y][x];blocks+=v;faces+=1;
+ [[1,0],[-1,0],[0,1],[0,-1]].forEach(([dx,dy])=>{const nx=x+dx,ny=y+dy,n=(nx<0||ny<0||nx>=N||ny>=N)?0:h[ny][nx];faces+=Math.max(0,v-n);});}
+document.getElementById("faces").textContent="Diese kleine Welt hat "+blocks.toLocaleString("de")+" Blöcke mit zusammen "+(blocks*6).toLocaleString("de")+" Flächen. Sichtbar sind nur "+faces.toLocaleString("de")+" davon, also etwa "+Math.round(100*faces/(blocks*6))+" Prozent.";
+function draw(){ctx.clearRect(0,0,W,H);
+ const ac=M3D.css("--ac"),bg=M3D.css("--bg"),tx=M3D.css("--tx");let n=0;
+ const cell=(x,y,k)=>{let s=0,m=0;for(let j=0;j<k;j++)for(let i=0;i<k;i++){s+=h[y+j][x+i];m++;}
+  ctx.globalAlpha=0.15+0.85*Math.min(1,s/m/8);ctx.fillStyle=ac;ctx.fillRect(x*S,y*S,k*S,k*S);
+  ctx.globalAlpha=1;ctx.strokeStyle=bg;ctx.lineWidth=1;ctx.strokeRect(x*S+.5,y*S+.5,k*S-1,k*S-1);n++;};
+ const dist=(x,y,k)=>Math.hypot(x+k/2-px,y+k/2-py);
+ for(let y=0;y<N;y+=4)for(let x=0;x<N;x+=4){
+  if(lod&&dist(x,y,4)>14){cell(x,y,4);continue;}
+  for(let j=0;j<4;j+=2)for(let i=0;i<4;i+=2){
+   if(lod&&dist(x+i,y+j,2)>7)cell(x+i,y+j,2);
+   else for(let b=0;b<2;b++)for(let a=0;a<2;a++)cell(x+i+a,y+j+b,1);}}
+ ctx.beginPath();ctx.arc(px*S,py*S,10,0,7);ctx.fillStyle=tx;ctx.fill();ctx.strokeStyle=bg;ctx.lineWidth=3;ctx.stroke();
+ document.getElementById("info").textContent="Gezeichnete Felder: "+n+" statt "+(N*N);}
+let dg=false;c.addEventListener("pointerdown",e=>{dg=true;c.setPointerCapture(e.pointerId);mv(e);});
+c.addEventListener("pointermove",e=>{if(dg)mv(e);});c.addEventListener("pointerup",()=>dg=false);
+function mv(e){const p=M3D.pos(c,e);px=Math.max(0,Math.min(N,p.x/S));py=Math.max(0,Math.min(N,p.y/S));draw();}
+document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;lod=b.dataset.m==="on";
+ document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");draw();};
+M3D.onTheme(draw);draw();
+</script>
+</body>
+</html>

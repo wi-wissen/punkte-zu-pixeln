@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Koordinaten – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="2">
+<main>
+<div class="eyebrow">KAPITEL 1 VON 7</div>
+<h1>Koordinaten</h1>
+<p class="lead">Um einen Ort in einer 3D-Welt festzulegen, brauchst du drei Zahlen: x, y und z.</p>
+<p>Aus dem Mathematikunterricht kennst du x und y. Nach rechts geht x, nach oben geht y. In 3D kommt eine dritte Achse dazu: <b>z</b> zeigt in die Tiefe, auf dich zu oder von dir weg. Jeder Punkt der Welt ist ein Zahlentripel (x | y | z).</p>
+<div class="demo">
+ <div class="bar"><label class="sl">x <input id="x" type="range" min="-3" max="3" step="1" value="2"></label><label class="sl">y <input id="y" type="range" min="-3" max="3" step="1" value="1"></label><label class="sl">z <input id="z" type="range" min="-3" max="3" step="1" value="2"></label></div>
+ <canvas id="c" role="img" aria-label="Koordinatensystem mit Punkt"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<p>Ziehe an den Reglern und beobachte, wohin sich der Punkt bewegt. Du kannst die Szene auch mit der Maus drehen.</p>
+<div class="merke"><b>Merke:</b> Ein Punkt im Raum besteht aus drei Zahlen (x | y | z). Alles in einem 3D-Spiel, jede Figur und jede Wand, besteht am Ende aus solchen Punkten.</div>
+<div class="quiz" data-q="Ein Spieler springt nach oben. Welche Koordinate ändert sich?" data-c="1" data-why="y ist die Achse nach oben."><ul><li>x</li><li>y</li><li>z</li></ul></div>
+<div class="quiz" data-q="Der Punkt (0 | 0 | 5) liegt …" data-c="2" data-why="Nur z ist verändert, der Punkt liegt genau in der Tiefe der z-Achse."><ul><li>5 Einheiten rechts vom Ursprung</li><li>5 Einheiten über dem Ursprung</li><li>5 Einheiten in der Tiefe, mittig</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const c=document.getElementById("c"),W=620,H=380,ctx=M3D.setup(c,W,H);
+const st={ax:0.35,ay:-0.5};
+const cam={cx:W/2,cy:H/2+10,dist:9,f:6,scale:34};
+const inp=["x","y","z"].map(i=>document.getElementById(i));
+function P(x,y,z){const r=M3D.rotX(M3D.rotY([x,y,z],st.ay),st.ax);return M3D.project(r,cam);}
+function line(a,b,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}
+function draw(){ctx.clearRect(0,0,W,H);
+ const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),bd=M3D.css("--bd");
+ // Bodenraster
+ for(let i=-3;i<=3;i++){line(P(i,0,-3),P(i,0,3),bd,1);line(P(-3,0,i),P(3,0,i),bd,1);}
+ const o=P(0,0,0);
+ [["x",[3.6,0,0]],["y",[0,3.6,0]],["z",[0,0,3.6]]].forEach(([n,v])=>{const e=P(...v);line(o,e,tx,2);ctx.fillStyle=tx;ctx.font="700 18px Nunito,sans-serif";ctx.fillText(n,e[0]+6,e[1]-6);});
+ const [x,y,z]=inp.map(i=>+i.value),p=P(x,y,z);
+ line(p,P(x,0,z),ac,1.5,[5,5]);line(P(x,0,z),P(x,0,0),ac,1.5,[5,5]);line(P(x,0,z),P(0,0,z),ac,1.5,[5,5]);
+ ctx.beginPath();ctx.arc(p[0],p[1],8,0,7);ctx.fillStyle=ac;ctx.fill();
+ document.getElementById("info").textContent="Punkt ("+x+" | "+y+" | "+z+")";}
+inp.forEach(i=>i.oninput=draw);M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
+</script>
+</body>
+</html>

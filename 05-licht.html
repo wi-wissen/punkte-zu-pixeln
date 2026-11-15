@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Licht und Schatten – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="6">
+<main>
+<div class="eyebrow">KAPITEL 5 VON 7</div>
+<h1>Licht und Schatten</h1>
+<p class="lead">Licht entscheidet, ob eine Szene flach oder räumlich wirkt. Es gibt zwei Wege, es zu berechnen.</p>
+<h2>Weg 1: Helligkeit nach Winkel</h2>
+<p>Eine Fläche ist umso heller, je direkter das Licht auf sie fällt. Fällt es senkrecht darauf, ist sie am hellsten, streift es nur, ist sie dunkel. Der Computer rechnet dafür pro Dreieck den Winkel zwischen Fläche und Licht aus. Das geht blitzschnell, ist aber eine <b>Täuschung</b>: Ein Schatten wirft so noch nichts.</p>
+<h2>Weg 2: Raytracing</h2>
+<p>Beim Raytracing schickt der Computer für <b>jedes Pixel einen Lichtstrahl</b> in die Szene. Er sucht, was der Strahl trifft. Dann schickt er vom Treffpunkt einen zweiten Strahl zur Lampe. Liegt etwas dazwischen, ist der Punkt im Schatten. Das sieht sehr realistisch aus, kostet aber viel Rechenzeit. Wechsle zwischen den Wegen und bewege das Licht:</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="angle">Nur Winkel</button><button data-m="ray">Raytracing mit Schatten</button></div><label class="sl">Licht <input id="a" type="range" min="-80" max="80" value="-40"></label></div>
+ <canvas id="c" role="img" aria-label="Kugel auf einer Fläche, beleuchtet"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<p>Moderne Spiele mischen beides: Das meiste wird schnell nach Winkel gerechnet, und Raytracing kommt nur dort dazu, wo es viel bringt, zum Beispiel für Schatten und Spiegelungen.</p>
+<div class="merke"><b>Merke:</b> Rasterisierung berechnet Licht nach dem Winkel und ist schnell, aber vorgetäuscht. Raytracing verfolgt einen Strahl pro Pixel und liefert echte Schatten, kostet aber viel Zeit.</div>
+<div class="quiz" data-q="Was fehlt, wenn man Licht nur nach dem Winkel berechnet?" data-c="1" data-why="Ob etwas im Weg steht, wird dabei nicht geprüft."><ul><li>Die Farbe</li><li>Der Schatten</li><li>Die Form</li></ul></div>
+<div class="quiz" data-q="Ein Bild hat 1920 × 1080 Pixel. Wie viele Strahlen braucht Raytracing mindestens?" data-c="2" data-why="Ein Strahl pro Pixel: etwa 2 Millionen, und das 60-mal pro Sekunde."><ul><li>1920</li><li>1080</li><li>etwa 2 Millionen</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const c=document.getElementById("c"),RW=150,RH=84,W=620,H=348,ctx=M3D.setup(c,W,H);
+const off=document.createElement("canvas");off.width=RW;off.height=RH;const octx=off.getContext("2d");
+let mode="angle";
+const hex=h=>{h=h.replace("#","");if(h.length===3)h=h.replace(/./g,"$&$&");return [0,2,4].map(i=>parseInt(h.substr(i,2),16));};
+function render(){
+ const a=+document.getElementById("a").value*Math.PI/180;
+ const L=M3D.norm([Math.sin(a)*1.4,1,-0.35]);
+ const sph=[0,0.2,4],R=1,gy=-0.8;
+ const bg=hex(M3D.css("--bg")),sc=hex(M3D.css("--c2")),gc=hex(M3D.css("--bd2"));
+ const img=octx.createImageData(RW,RH);
+ const hitS=(o,d)=>{const oc=M3D.sub(o,sph),b=M3D.dot(oc,d),cc=M3D.dot(oc,oc)-R*R,disc=b*b-cc;if(disc<0)return -1;const t=-b-Math.sqrt(disc);return t>1e-4?t:-1;};
+ let rays=0;
+ for(let y=0;y<RH;y++)for(let x=0;x<RW;x++){
+  const d=M3D.norm([(x-RW/2)/RH*1.2,-(y-RH/2)/RH*1.2,1]),o=[0,0.4,0];rays++;
+  let col=bg,t=hitS(o,d),tg=d[1]<0?(gy-o[1])/d[1]:-1;
+  let p,n,base;
+  if(t>0&&(tg<0||t<tg)){p=[o[0]+d[0]*t,o[1]+d[1]*t,o[2]+d[2]*t];n=M3D.norm(M3D.sub(p,sph));base=sc;}
+  else if(tg>0){p=[o[0]+d[0]*tg,gy,o[2]+d[2]*tg];n=[0,1,0];base=gc;if(p[2]>14)p=null;}
+  if(p&&base){let lam=Math.max(0,M3D.dot(n,L));
+   if(mode==="ray"&&base===gc){const q=[p[0],p[1]+1e-3,p[2]];if(hitS(q,L)>0)lam*=0.15;}
+   const k=0.25+0.75*lam;col=[base[0]*k,base[1]*k,base[2]*k];
+   if(base===gc){const f=Math.max(0,1-p[2]/14);col=col.map((v,i)=>bg[i]*(1-f)+v*f);}}
+  const i=(y*RW+x)*4;img.data[i]=col[0];img.data[i+1]=col[1];img.data[i+2]=col[2];img.data[i+3]=255;}
+ octx.putImageData(img,0,0);ctx.imageSmoothingEnabled=false;ctx.drawImage(off,0,0,W,H);
+ document.getElementById("info").textContent=mode==="ray"?"Raytracing: "+rays.toLocaleString("de")+" Strahlen für dieses kleine Bild, dazu je ein Schattenstrahl":"Nur Winkel: Die Kugel ist schattiert, aber die Fläche hat keinen Schatten";}
+document.getElementById("a").oninput=render;
+document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
+ document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");render();};
+M3D.onTheme(render);render();
+</script>
+</body>
+</html>

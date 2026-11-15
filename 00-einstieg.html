@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Einstieg – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="1">
+<main>
+<div class="eyebrow">EINSTIEG</div>
+<h1>Das Zeitbudget</h1>
+<p class="lead">Ein Spiel zeichnet das Bild immer wieder neu, meist 60-mal pro Sekunde. Für alles Rechnen bleibt dabei erstaunlich wenig Zeit.</p>
+<div class="demo">
+ <div class="bar"><label class="sl">Bilder pro Sekunde <input id="fps" type="range" min="5" max="120" value="60"><b id="fpsv">60</b></label></div>
+ <canvas id="c" role="img" aria-label="Quadrat, das hin und her springt"></canvas>
+ <div class="info" id="info"></div>
+</div>
+<p>Die Zeit pro Bild ist <b>1 Sekunde geteilt durch die Bilder pro Sekunde</b>. Bei 60 Bildern sind das nur etwa 16 Millisekunden. In dieser Zeit muss das Spiel alles erledigen:</p>
+<ol><li>Eingaben lesen (Tastatur, Maus)</li><li>Die Welt weiterrechnen: Bewegung, Kollisionen</li><li>Das Bild zeichnen</li></ol>
+<p>Danach beginnt alles von vorn. Man nennt das die <b>Spielschleife</b>. Dieses Buch zeigt, wie die Schritte 2 und 3 so schnell werden, dass sie in 16 Millisekunden passen.</p>
+<div class="merke"><b>Merke:</b> Bei 60 Bildern pro Sekunde hat der Computer pro Bild nur etwa 16 Millisekunden. Alles Weitere in diesem Buch sind Tricks, um in dieser Zeit fertig zu werden.</div>
+<div class="quiz" data-q="Wie viel Zeit hat ein Spiel pro Bild bei 100 Bildern pro Sekunde?" data-c="0" data-why="1000 ms geteilt durch 100 sind 10 ms."><ul><li>10 Millisekunden</li><li>100 Millisekunden</li><li>1 Millisekunde</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const c=document.getElementById("c"),ctx=M3D.setup(c,620,120),fps=document.getElementById("fps");
+let x=20,dir=1,acc=0,last=performance.now();
+function draw(){const w=620,s=M3D.css("--ik"),a=M3D.css("--ac"),m=M3D.css("--bd2");
+ ctx.clearRect(0,0,w,120);ctx.strokeStyle=m;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(10,100);ctx.lineTo(610,100);ctx.stroke();
+ ctx.fillStyle=a;ctx.fillRect(x,50,48,48);}
+M3D.onTheme(draw);
+function loop(t){const dt=(t-last)/1000;last=t;acc+=dt;const step=1/+fps.value;
+ while(acc>=step){acc-=step;x+=dir*300*step;if(x>560){x=560;dir=-1}if(x<12){x=12;dir=1}}
+ draw();requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+function info(){const f=+fps.value;document.getElementById("fpsv").textContent=f;
+ document.getElementById("info").textContent="Zeit pro Bild: "+(1000/f).toFixed(1)+" Millisekunden";}
+fps.oninput=info;info();
+</script>
+</body>
+</html>

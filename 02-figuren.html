@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Figuren aus Dreiecken – 3D-Spiele erklärt</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-page="3">
+<main>
+<div class="eyebrow">KAPITEL 2 VON 7</div>
+<h1>Figuren aus Dreiecken</h1>
+<p class="lead">Eine 3D-Figur ist eine Hülle aus Dreiecken. Jedes Dreieck hat drei Eckpunkte, und jeder Eckpunkt ist ein Punkt im Raum.</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="tabs"><button class="on" data-m="fill">Gefüllt</button><button data-m="wire">Drahtgitter</button><button data-m="points">Nur Eckpunkte</button></div><span>Ziehen zum Drehen</span></div>
+ <canvas id="c" role="img" aria-label="Würfel aus Dreiecken"></canvas>
+ <div class="info">8 Eckpunkte · 12 Dreiecke</div>
+</div>
+<p>Auch der einfache Würfel besteht aus Dreiecken: Jede der 6 Seiten ist ein Viereck, das aus 2 Dreiecken zusammengesetzt wird. Schalte auf „Drahtgitter“, dann siehst du die Dreiecke.</p>
+<h2>Warum Dreiecke und keine Vierecke?</h2>
+<p>Drei Punkte liegen immer in einer Ebene, das Dreieck ist also immer flach. Vier Punkte liegen dagegen nicht immer in einer Ebene, ein „Viereck“ kann geknickt sein. Eine Grafikkarte, die nur mit Dreiecken rechnet, hat es deshalb einfach: Alles ist flach und eindeutig.</p>
+<figure><img src="img/s1-netz.png" alt="Die Ritterin als Dreiecksnetz" style="max-width:300px"><figcaption>Auch die Ritterin ist ein Netz aus Dreiecken. Je mehr Dreiecke, desto glatter wirkt sie.</figcaption></figure>
+<h2>Haare sind ein Sonderfall</h2>
+<p>Einzelne Haare kann ein Spiel nicht berechnen, das wären Millionen. Stattdessen werden Haare aus <b>schmalen Bändern</b> gebaut, die jeweils eine ganze Strähne darstellen. Der Zopf der Ritterin ist ein paar Dutzend solcher Bänder.</p>
+<h2>Das Aussehen: Texturen</h2>
+<p>Ein Dreieck selbst ist nur eine Fläche. Damit es nach Stoff oder Metall aussieht, legt man ein Bild darauf, eine <b>Textur</b>. Das ist wie Geschenkpapier, das über die Dreiecke gespannt wird.</p>
+<div class="merke"><b>Merke:</b> Jede 3D-Figur besteht aus vielen Dreiecken. Die Eckpunkte legen die Form fest, eine Textur legt das Aussehen fest.</div>
+<div class="quiz" data-q="Warum zerlegt man ein Viereck in Dreiecke?" data-c="0" data-why="Drei Punkte sind immer eben, vier nicht."><ul><li>Vier Punkte liegen nicht immer in einer Ebene.</li><li>Dreiecke sehen schöner aus.</li><li>Vierecke kann der Rechner nicht speichern.</li></ul></div>
+<div class="quiz" data-q="Wie viele Dreiecke hat ein Würfel mindestens?" data-c="1" data-why="6 Seiten mit je 2 Dreiecken."><ul><li>6</li><li>12</li><li>8</li></ul></div>
+</main>
+<script src="js/mini3d.js"></script>
+<script src="js/site.js"></script>
+<script>
+const c=document.getElementById("c"),W=620,H=340,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1.2);
+const st={ax:0.5,ay:0.7,auto:true};let mode="fill";
+const cam={cx:W/2,cy:H/2,dist:10,f:10,scale:46};
+function draw(){ctx.clearRect(0,0,W,H);M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam,mode,points:mode!=="fill"});}
+M3D.drag(c,st,draw);M3D.onTheme(draw);
+document.getElementById("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;mode=b.dataset.m;
+ document.querySelectorAll("#tabs button").forEach(x=>x.className=x===b?"on":"");draw();};
+(function loop(){if(st.auto){st.ay+=0.008;draw();}requestAnimationFrame(loop);})();
+</script>
+</body>
+</html>
