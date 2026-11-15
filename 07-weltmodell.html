@@ -10,60 +10,122 @@
 <main>
 <div class="eyebrow">KAPITEL 7 VON 7</div>
 <h1>Die Spielwelt</h1>
-<p class="lead">Eine Blockwelt wie in Minecraft enthält so viele Blöcke, dass schon das bloße Durchzählen zu lange dauern würde. Drei Ideen machen sie trotzdem flüssig.</p>
-<h2>Die Datenstruktur: ein dreidimensionales Feld</h2>
-<p>Die Welt ist ein Raster. Für jede Position wird nur eine kleine Zahl gespeichert, die den Blocktyp nennt. Die Koordinaten selbst stehen nirgends, sie sind der Index.</p>
-<pre><code>LUFT, ERDE, STEIN, HOLZ = 0, 1, 2, 3
+<p class="lead">Eine Blockwelt wie in Minecraft besteht aus Millionen von Blöcken. Dieses Kapitel zeigt, wie eine solche Welt gespeichert wird und mit welchen drei Ideen das Spiel vermeidet, fast alles davon zeichnen zu müssen.</p>
 
-welt = [[[LUFT for z in range(16)] for y in range(256)] for x in range(16)]
-welt[4][63][7] = STEIN
-typ = welt[x][y][z]              # Zugriff in konstanter Zeit, O(1)</code></pre>
-<p>Die Welt ist in Abschnitte von 16 × 256 × 16 Blöcken geteilt, also 65 536 Blöcke je Abschnitt. Mit einem Byte pro Block sind das 64 Kilobyte. Sieht man 12 Abschnitte weit in jede Richtung, sind 25 · 25 = 625 Abschnitte geladen, zusammen rund 41 Millionen Blöcke.</p>
-<p>Jeder Block hat 6 Seiten aus je 2 Dreiecken. Alle Blöcke zu zeichnen hieße fast 500 Millionen Dreiecke pro Bild. Das Zeitbudget aus dem Einstieg erlaubt nur einen winzigen Bruchteil davon.</p>
-<h2>Idee 1: Verdeckte Flächen finden</h2>
-<p>Eine Blockseite ist nur sichtbar, wenn der Nachbar auf dieser Seite Luft ist. Ob das so ist, kann man nachschlagen, und zwar mit dem Feld selbst:</p>
-<pre><code>NACHBARN = [(1,0,0), (-1,0,0), (0,1,0), (0,-1,0), (0,0,1), (0,0,-1)]
-
-def sichtbare_flaechen(welt):
-    flaechen = []
-    for x in range(16):
-        for y in range(256):
-            for z in range(16):
-                if welt[x][y][z] == LUFT:
-                    continue
-                for dx, dy, dz in NACHBARN:
-                    if typ_bei(x + dx, y + dy, z + dz) == LUFT:
-                        flaechen.append((x, y, z, dx, dy, dz))
-    return flaechen</code></pre>
-<p>Die Funktion <code>typ_bei</code> schlägt im Feld nach und fragt am Rand den Nachbarabschnitt.</p>
+<h2 id="feld">Wie die Welt gespeichert ist</h2>
+<p>Die Welt ist ein Raster aus gleich großen Würfeln. An jeder Stelle des Rasters sitzt genau ein Block. Für jede Stelle wird nur eine kleine Zahl gespeichert, die sagt, <b>welche Art</b> von Block dort ist. Auch Luft ist eine Blockart.</p>
+<pre><code>LUFT, ERDE, STEIN = <span class="hn">0</span>, <span class="hn">1</span>, <span class="hn">2</span></code></pre>
+<p>Wie speichert man ein dreidimensionales Raster? Schritt für Schritt, mit Listen:</p>
+<ul><li>Eine <b>Reihe</b> von Blöcken ist eine Liste: <code>[STEIN, STEIN, ERDE, LUFT]</code></li>
+<li>Eine <b>Schicht</b> ist eine Liste von Reihen, also eine Tabelle.</li>
+<li>Die <b>Welt</b> ist eine Liste von Schichten: eine Liste von Listen von Listen.</li></ul>
+<p>Um einen Block zu finden, braucht man drei Nummern, eine für jede Ebene der Verschachtelung. Das sind genau die Koordinaten x, y und z aus <a href="01-koordinaten.html">Kapitel 1</a>:</p>
+<pre><code>art = welt[x][y][z]          <span class="hc"># welche Blockart ist an der Stelle (x | y | z)?</span>
+welt[<span class="hn">3</span>][<span class="hn">2</span>][<span class="hn">5</span>] = LUFT         <span class="hc"># den Block an der Stelle (3 | 2 | 5) abbauen</span></code></pre>
 <div class="demo">
- <div class="bar"><span>Klicke auf Felder, um Blöcke zu setzen oder zu entfernen</span><span>Schnitt durch die Welt: 4 Nachbarn statt 6</span></div>
+ <div class="bar"><label class="sl">x <input id="ix" type="range" min="0" max="8" value="4"></label><label class="sl">y <input id="iy" type="range" min="0" max="5" value="2"></label><label class="sl">z <input id="iz" type="range" min="0" max="8" value="5"></label></div>
+ <canvas id="i1" role="img" aria-label="Kleine Blockwelt, ein Block ist markiert"></canvas>
+ <div class="info" id="i1i"></div>
+</div>
+<p>Wichtig für alles Weitere: Der Computer muss einen Block nicht <b>suchen</b>. Aus x, y und z ergibt sich direkt die Stelle in der Liste. Der Zugriff dauert immer gleich lang, egal wie groß die Welt ist. Man sagt: Er kostet konstante Zeit, O(1).</p>
+
+<h3>Warum man nicht einfach alles zeichnen kann</h3>
+<p>Die Welt ist in Abschnitte geteilt, damit immer nur die Umgebung der Spielfigur geladen sein muss. Ein Abschnitt ist 16 Blöcke breit, 16 Blöcke tief und 256 Blöcke hoch.</p>
+<table><tr><th>Größe</th><th>Rechnung</th><th>Ergebnis</th></tr>
+<tr><td>Blöcke in einem Abschnitt</td><td>16 · 16 · 256</td><td>65 536</td></tr>
+<tr><td>Abschnitte bei Sichtweite 12</td><td>25 · 25</td><td>625</td></tr>
+<tr><td>Blöcke im sichtbaren Bereich</td><td>625 · 65 536</td><td>rund 41 Millionen</td></tr>
+<tr><td>Dreiecke, wenn jeder Block 12 hat</td><td>41 Millionen · 12</td><td>rund 490 Millionen</td></tr></table>
+<p>Sichtweite 12 heißt: 12 Abschnitte in jede Richtung, mit dem eigenen also 25 nebeneinander. Fast eine halbe Milliarde Dreiecke in jedem Bild ist auch für eine heutige Grafikkarte zu viel. Zum Glück sind die allermeisten davon gar nicht zu sehen.</p>
+
+<h2 id="flaechen">Idee 1: Verdeckte Flächen gar nicht erst erzeugen</h2>
+<p>Ein Block tief im Boden ist auf allen sechs Seiten von anderen Blöcken umgeben. Keine seiner Seiten ist jemals zu sehen. Allgemein gilt: <b>Eine Blockseite ist nur sichtbar, wenn der Nachbar auf dieser Seite Luft ist.</b></p>
+<p>Ob das so ist, lässt sich nachschlagen. Der Nachbar rechts von (x | y | z) ist (x + 1 | y | z), der Nachbar darüber ist (x | y + 1 | z), und so weiter. Jeder Block hat sechs Nachbarn.</p>
+<div class="demo">
+ <div class="bar"><label class="sl">x <input id="jx" type="range" min="0" max="8" value="4"></label><label class="sl">y <input id="jy" type="range" min="0" max="5" value="2"></label><label class="sl">z <input id="jz" type="range" min="0" max="8" value="5"></label></div>
+ <canvas id="i2" role="img" aria-label="Blockwelt, für einen Block werden die sechs Nachbarn geprüft"></canvas>
+ <div class="step" id="i2i"></div>
+</div>
+<p>Wähle verschiedene Blöcke: einen an der Oberfläche, einen im Inneren, einen am Hang. Die Liste zeigt für jede der sechs Seiten, was der Nachbar ist und ob die Seite gezeichnet werden muss.</p>
+<p>Als Programm: Gehe alle Blöcke durch. Für jeden, der nicht Luft ist, prüfe die sechs Nachbarn. Jede Seite mit einem Luft-Nachbarn kommt auf die Liste der Flächen, die gezeichnet werden.</p>
+<pre><code>NACHBARN = [(<span class="hn">1</span>,<span class="hn">0</span>,<span class="hn">0</span>), (-<span class="hn">1</span>,<span class="hn">0</span>,<span class="hn">0</span>), (<span class="hn">0</span>,<span class="hn">1</span>,<span class="hn">0</span>), (<span class="hn">0</span>,-<span class="hn">1</span>,<span class="hn">0</span>), (<span class="hn">0</span>,<span class="hn">0</span>,<span class="hn">1</span>), (<span class="hn">0</span>,<span class="hn">0</span>,-<span class="hn">1</span>)]
+
+<span class="hk">def</span> <span class="hd">sichtbare_flaechen</span>(welt):
+    flaechen = []
+    <span class="hk">for</span> x <span class="hk">in</span> range(<span class="hn">16</span>):
+        <span class="hk">for</span> y <span class="hk">in</span> range(<span class="hn">256</span>):
+            <span class="hk">for</span> z <span class="hk">in</span> range(<span class="hn">16</span>):
+                <span class="hk">if</span> welt[x][y][z] == LUFT:
+                    <span class="hk">continue</span>                                  <span class="hc"># Luft hat keine Seiten</span>
+                <span class="hk">for</span> dx, dy, dz <span class="hk">in</span> NACHBARN:
+                    <span class="hk">if</span> blockart(x + dx, y + dy, z + dz) == LUFT:
+                        flaechen.append((x, y, z, dx, dy, dz))    <span class="hc"># diese Seite ist sichtbar</span>
+    <span class="hk">return</span> flaechen</code></pre>
+<p>Die Funktion <code>blockart</code> schlägt in der Welt nach. Liegt die Stelle außerhalb des Abschnitts, fragt sie den Nachbarabschnitt.</p>
+<p>Wie viel das bringt, zeigt der Schnitt durch eine Welt. Hervorgehoben sind die Seiten, die gezeichnet werden müssen. Klicke auf Felder, um zu graben oder zu bauen.</p>
+<div class="demo">
+ <div class="bar"><span>Klicken: Block entfernen oder setzen</span><span>Schnitt von der Seite (hier 4 Nachbarn statt 6)</span></div>
  <canvas id="f" role="img" aria-label="Schnitt durch eine Blockwelt mit sichtbaren Flächen"></canvas>
  <div class="info" id="finfo"></div>
 </div>
-<p>Grabe einen Tunnel und beobachte, wie neue Flächen sichtbar werden.</p>
-<h3>Aufwand</h3>
-<p>Der Algorithmus besucht jeden Block einmal und schaut sechsmal im Feld nach. Das ist O(n) für n Blöcke. Für einen Abschnitt sind das etwa 400 000 Zugriffe, zu viel für jedes Bild, aber das ist auch nicht nötig: Die Liste der sichtbaren Flächen wird <b>gespeichert</b> und nur neu berechnet, wenn sich im Abschnitt ein Block ändert. Das ist derselbe Tausch von Rechenzeit gegen Speicher wie bei Quake in Kapitel 6.</p>
-<h2>Idee 2: Nur zeichnen, was im Blickfeld liegt</h2>
-<p>Die Kamera sieht nur einen Ausschnitt der Welt. Jeder Abschnitt hat einen Quader als Hüllkörper. Liegt dieser vollständig außerhalb des Blickfelds, entfällt der ganze Abschnitt mit einem einzigen Test, ähnlich dem Überlappungstest aus Kapitel 3. Bei einem Blickwinkel von 90° bleibt etwa ein Viertel der Abschnitte übrig.</p>
-<h2>Idee 3: Detailstufen</h2>
-<p>Die Projektion aus Kapitel 4 sagt, wie groß ein Block auf dem Bildschirm erscheint: Größe · f ÷ z. Ab einer gewissen Entfernung ist ein Block kleiner als ein Pixel. Dann lohnt es nicht, ihn einzeln zu zeichnen. Man fasst 2 × 2 × 2 Blöcke zu einem doppelt so großen zusammen und hat nur noch ein Achtel der Blöcke. Weiter hinten wiederholt man das. Diese vereinfachten Fassungen heißen Detailstufen (englisch: Level of Detail).</p>
+<h3>Aufwand: einmal rechnen, Ergebnis aufheben</h3>
+<p>Die Funktion besucht jeden der 65 536 Blöcke eines Abschnitts einmal und schlägt jeweils sechsmal nach. Das sind rund 400 000 Zugriffe, der Aufwand wächst linear mit der Zahl der Blöcke. Das in jedem der 60 Bilder pro Sekunde für 625 Abschnitte zu tun, wäre viel zu teuer.</p>
+<p>Es ist auch nicht nötig. Solange niemand in einem Abschnitt einen Block setzt oder abbaut, ändert sich die Liste seiner sichtbaren Flächen nicht. Das Spiel berechnet sie deshalb <b>einmal</b>, wenn der Abschnitt geladen wird, und hebt sie auf. In jedem Bild wird nur die fertige Liste gezeichnet. Erst wenn sich im Abschnitt ein Block ändert, wird dieser eine Abschnitt neu berechnet.</p>
+<p>Das ist dieselbe Idee wie bei Quake in <a href="06-geschichte.html">Kapitel 6</a>: Rechenzeit sparen, indem man Ergebnisse speichert.</p>
+
+<h2 id="blickfeld">Idee 2: Nur zeichnen, was im Blickfeld liegt</h2>
+<p>Die Kamera sieht immer nur einen Ausschnitt der Welt, etwa einen Winkel von 90°. Alles hinter und neben der Spielfigur kann nicht im Bild erscheinen. Das Spiel prüft das nicht für jeden Block einzeln, sondern für ganze Abschnitte: Liegt ein Abschnitt vollständig außerhalb des Blickfelds, wird er komplett übersprungen. Ein einziger Test erspart Zehntausende Flächen. Das ist wieder das Prinzip der <a href="03-kollision.html#huellkoerper">Hüllkörper aus Kapitel 3</a>: erst grob prüfen, dann erst genau hinsehen.</p>
+
+<h2 id="detail">Idee 3: Fernes vereinfachen</h2>
+<p>Nach der <a href="04-kamera.html#projektion">Projektion</a> ist ein Block umso kleiner, je weiter er entfernt ist: Größe · f ÷ z. Ab einer gewissen Entfernung ist ein Block kleiner als ein Pixel. Dort jeden Block einzeln zu zeichnen, ist verschwendete Arbeit. Man sieht den Unterschied nicht.</p>
+<p>Deshalb gibt es von jedem Abschnitt mehrere <b>Detailstufen</b> (englisch: Level of Detail). In der gröberen Stufe werden 2 · 2 · 2 Blöcke zu einem doppelt so großen Block zusammengefasst, in der nächsten 4 · 4 · 4. Nah an der Spielfigur wird die feine Stufe gezeichnet, weiter weg die groben.</p>
 <div class="demo">
- <div class="bar"><div class="tabs" id="tabs" data-for><button data-m="0">Alles fein</button><button class="on" data-m="1">Mit Detailstufen</button></div><span>Ziehe die Spielfigur (Ansicht von oben)</span></div>
- <canvas id="c" role="img" aria-label="Karte von oben mit Detailstufen"></canvas>
- <div class="info" id="info"></div>
+ <div class="bar"><span>Derselbe Hügel in drei Detailstufen</span></div>
+ <canvas id="lod" role="img" aria-label="Ein Hügel in feiner, mittlerer und grober Darstellung"></canvas>
+ <div class="info" id="lodi"></div>
 </div>
-<p>Dieselbe Überlegung gilt für Figuren: Die Ritterin wird in der Ferne durch ein Netz mit weniger Dreiecken ersetzt (Kapitel 2).</p>
-<h2>Zusammenfassung des ganzen Weges</h2>
-<ol><li>Die Welt liegt als Feld von Blocktypen vor, Figuren als Ecken- und Indexlisten.</li><li>Pro Abschnitt wird einmal die Liste der sichtbaren Flächen berechnet.</li><li>In jedem Bild: Eingaben lesen, Objekte bewegen, Kollisionen mit Hüllkörpern und Raster prüfen.</li><li>Abschnitte außerhalb des Blickfelds verwerfen, ferne vereinfachen.</li><li>Eckpunkte in die Sicht der Kamera bringen und projizieren.</li><li>Dreiecke rasterisieren, Texturfarbe und Helligkeit pro Pixel bestimmen, Tiefenpuffer prüfen.</li><li>Wo es lohnt, Schatten und Spiegelungen per Raytracing ergänzen.</li></ol>
-<div class="merke"><b>Merke:</b> Die Blockwelt ist ein dreidimensionales Feld von Typen mit Zugriff in O(1). Sichtbar sind nur Flächen, deren Nachbar Luft ist. Ihre Liste wird vorberechnet und gespeichert. Abschnitte außerhalb des Blickfelds entfallen, ferne werden zu größeren Blöcken zusammengefasst.</div>
-<div class="quiz" data-q="Ein Würfel aus 10 × 10 × 10 Steinblöcken schwebt in der Luft. Wie viele Blockseiten sind sichtbar?" data-c="0" data-why="Nur die Außenseiten: 6 Seiten mit je 10 · 10 = 100 Flächen. Insgesamt hätten die Blöcke 6 000 Seiten."><ul><li>600</li><li>1 000</li><li>6 000</li></ul></div><div class="quiz" data-q="Die Sichtweite wird von 12 auf 24 Abschnitte verdoppelt. Wie verändert sich die Zahl der geladenen Abschnitte?" data-c="1" data-why="Aus 25 · 25 = 625 werden 49 · 49 = 2 401, also knapp das Vierfache. Die Fläche wächst quadratisch."><ul><li>Sie verdoppelt sich.</li><li>Sie wird etwa viermal so groß.</li><li>Sie wird achtmal so groß.</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Ein Block ist 1 m groß, f entspricht 1 000 Pixeln. Ab welcher Entfernung ist der Block kleiner als ein Pixel?</div><summary>Lösung anzeigen</summary><div class="t">Größe auf dem Bildschirm = 1 · 1 000 ÷ z Pixel. Das ist kleiner als 1, wenn z größer als 1 000 m ist. Bei 500 m ist der Block noch 2 Pixel groß, dort genügt schon die halbe Auflösung.</div></details><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Warum speichert man die Liste der sichtbaren Flächen, statt sie in jedem Bild neu zu berechnen? Wann muss sie erneuert werden?</div><summary>Lösung anzeigen</summary><div class="t">Die Berechnung besucht alle 65 536 Blöcke des Abschnitts, das Ergebnis ändert sich aber nur, wenn ein Block gesetzt oder entfernt wird. Dann wird der betroffene Abschnitt neu berechnet (und der Nachbar, wenn der Block am Rand liegt).</div></details>
+<p>Von Stufe zu Stufe bleibt nur etwa ein Viertel der Flächen übrig. Aus der Nähe sieht man den Unterschied deutlich. Aus großer Entfernung, wenn der ganze Hügel nur noch wenige Pixel groß ist, nicht mehr.</p>
+
+<h3>Beide Ideen zusammen</h3>
+<p>Die Karte zeigt die 625 geladenen Abschnitte von oben. In der Mitte steht die Spielfigur. Schalte die beiden Ideen ein und aus und drehe die Blickrichtung.</p>
+<div class="demo">
+ <div class="bar"><span><button class="btn" id="cb1">Blickfeld: an</button> <button class="btn" id="cb2">Detailstufen: an</button></span><label class="sl">Blickrichtung <input id="ca" type="range" min="0" max="360" value="300"></label></div>
+ <canvas id="ch" role="img" aria-label="Abschnitte von oben, eingefärbt nach Detailstufe"></canvas>
+ <div class="info" id="chi"></div>
+</div>
+
+<h2>Der ganze Weg auf einen Blick</h2>
+<ol><li>Die Welt ist eine verschachtelte Liste von Blockarten, Figuren sind Ecken- und Indexlisten (<a href="02-figuren.html">Kapitel 2</a>).</li>
+<li>Für jeden Abschnitt wird einmal die Liste der sichtbaren Flächen berechnet und aufgehoben.</li>
+<li>In jedem Bild: Eingaben lesen, Objekte bewegen, Kollisionen prüfen (<a href="03-kollision.html">Kapitel 3</a>).</li>
+<li>Abschnitte außerhalb des Blickfelds überspringen, ferne in grober Stufe verwenden.</li>
+<li>Eckpunkte projizieren, Dreiecke rasterisieren, Textur und Tiefenpuffer anwenden (<a href="04-kamera.html">Kapitel 4</a>).</li>
+<li>Helligkeit berechnen, Schatten ergänzen (<a href="05-licht.html">Kapitel 5</a>).</li></ol>
+<p>All das geschieht 60-mal pro Sekunde, in jeweils 16,7 Millisekunden.</p>
+
+<div class="merke"><div class="mt">Merke</div>Die Blockwelt ist eine verschachtelte Liste: welt[x][y][z] liefert die Blockart in konstanter Zeit. Eine Blockseite wird nur gezeichnet, wenn ihr Nachbar Luft ist. Diese Liste wird einmal berechnet und aufgehoben. Abschnitte außerhalb des Blickfelds werden übersprungen, ferne Abschnitte in gröberen Detailstufen gezeichnet.</div>
+<div class="quiz" data-q="Ein Würfel aus 10 · 10 · 10 Steinblöcken schwebt in der Luft. Wie viele Blockseiten sind sichtbar?" data-c="0" data-why="Nur die Außenseiten: 6 Seiten mit je 10 · 10 = 100 Flächen. Insgesamt hätten die 1 000 Blöcke 6 000 Seiten."><ul><li>600</li><li>1 000</li><li>6 000</li></ul></div><div class="quiz" data-q="Die Sichtweite wird von 12 auf 24 Abschnitte verdoppelt. Wie verändert sich die Zahl der geladenen Abschnitte?" data-c="1" data-why="Aus 25 · 25 = 625 werden 49 · 49 = 2 401, also knapp das Vierfache."><ul><li>Sie verdoppelt sich.</li><li>Sie wird etwa viermal so groß.</li><li>Sie wird achtmal so groß.</li></ul></div><div class="aufgabe"><p><b>Aufgabe:</b> Im Inneren eines Berges wird ein einzelner Block abgebaut. Wie viele neue Flächen werden dadurch sichtbar, und zu welchen Blöcken gehören sie?</p><details><summary>Lösung anzeigen</summary><p>Sechs. Der abgebaute Block ist jetzt Luft. Jeder seiner sechs Nachbarn hat damit auf der ihm zugewandten Seite einen Luft-Nachbarn, also eine sichtbare Seite.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Ein Block ist 1 m groß, f entspricht 1 000 Pixeln. Ab welcher Entfernung ist der Block kleiner als ein Pixel?</p><details><summary>Lösung anzeigen</summary><p>Größe auf dem Bildschirm = 1 · 1 000 ÷ z Pixel. Das ist kleiner als 1, wenn z größer als 1 000 m ist. Schon bei 500 m ist der Block nur 2 Pixel groß.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Warum hebt das Spiel die Liste der sichtbaren Flächen auf, statt sie in jedem Bild neu zu berechnen? Wann muss sie erneuert werden?</p><details><summary>Lösung anzeigen</summary><p>Die Berechnung besucht alle 65 536 Blöcke des Abschnitts. Das Ergebnis ändert sich aber nur, wenn ein Block gesetzt oder abgebaut wird. Dann wird der betroffene Abschnitt neu berechnet, und der Nachbarabschnitt auch, falls der Block am Rand liegt.</p></details></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
-(function(){ // sichtbare Flächen
-const c=document.getElementById("f"),N=33,M=14,S=20,W=N*S,H=M*S,ctx=M3D.setup(c,W,H),g=[];
+const $=i=>document.getElementById(i);
+const DX=9,DY=6,DZ=9,hgt=(x,z)=>Math.max(2,Math.min(5,Math.round(2.6+1.3*Math.sin(x*.7+.4)+1.2*Math.cos(z*.6))));
+const world=(x,y,z)=>(x<0||z<0||x>=DX||z>=DZ||y<0||y>=DY)?0:(y<hgt(x,z)-1?2:y===hgt(x,z)-1?1:0);
+const NAMES=["LUFT","ERDE","STEIN","Weltboden"];
+function pal(){const bg=M3D.css("--bg"),mu=M3D.css("--mu"),dark=M3D.hex(bg)[0]<128,st=[M3D.mix(mu,bg,.62),M3D.mix(mu,bg,.42),M3D.mix(mu,bg,.22)];
+ return t=>t===1?[M3D.css("--c1"),M3D.css("--c2"),M3D.css("--c3")]:(dark?st.slice().reverse():st);}
+function isoDemo(cid,pre,nb){const c=$(cid),W=660,H=370,ctx=M3D.setup(c,W,H),s=["x","y","z"].map(k=>$(pre+k));
+ function draw(){ctx.clearRect(0,0,W,H);const m=s.map(e=>+e.value),t=world(...m);
+  M3D.iso(ctx,world,[DX,DY,DZ],{ox:W/2,oy:118,s:27,pal:pal(),line:M3D.css("--ik"),mark:m,markCol:M3D.css("--tx")});
+  if(!nb){$(cid+"i").textContent="welt["+m[0]+"]["+m[1]+"]["+m[2]+"] = "+NAMES[t];return;}
+  if(!t){$(cid+"i").textContent="An der Stelle ("+m.join(" | ")+") ist Luft. Luft hat keine Seiten, es gibt nichts zu prüfen.";return;}
+  let n=0;const rows=[["rechts",1,0,0],["links",-1,0,0],["oben",0,1,0],["unten",0,-1,0],["vorn",0,0,1],["hinten",0,0,-1]].map(([nm,dx,dy,dz])=>{const q=m[1]+dy<0?3:world(m[0]+dx,m[1]+dy,m[2]+dz);if(!q)n++;return nm+": "+NAMES[q]+(q?"":" ✓");});
+  $(cid+"i").textContent="Block ("+m.join(" | ")+") ist "+NAMES[t]+". Nachbarn: "+rows.join(" · ")+". Es "+(n===1?"muss 1 Seite":"müssen "+n+" Seiten")+" gezeichnet werden"+(n?".":": Der Block ist vollständig verdeckt.");}
+ s[1].value=hgt(+s[0].value,+s[2].value)-1;s.forEach(e=>e.oninput=draw);M3D.onTheme(draw);draw();}
+isoDemo("i1","i",false);isoDemo("i2","j",true);
+(function(){ // Schnitt mit sichtbaren Flächen
+const c=$("f"),N=33,M=14,S=20,W=N*S,H=M*S,ctx=M3D.setup(c,W,H),g=[];
 for(let y=0;y<M;y++){g[y]=[];for(let x=0;x<N;x++){const top=Math.round(5+2*Math.sin(x*.4)+1.5*Math.sin(x*.9+1));g[y][x]=y>=top?1:0;}}
 for(let x=12;x<19;x++){g[10][x]=0;g[11][x]=0;}
 const at=(x,y)=>y<0?0:(x<0||x>=N||y>=M)?1:g[y][x];
@@ -73,25 +135,38 @@ function draw(){ctx.clearRect(0,0,W,H);const ac=M3D.css("--ac"),bg=M3D.css("--bg
  for(let y=0;y<M;y++)for(let x=0;x<N;x++)if(g[y][x]){
   if(!at(x,y-1)){k++;ctx.moveTo(x*S,y*S);ctx.lineTo(x*S+S,y*S);}if(!at(x,y+1)){k++;ctx.moveTo(x*S,y*S+S);ctx.lineTo(x*S+S,y*S+S);}
   if(!at(x-1,y)){k++;ctx.moveTo(x*S,y*S);ctx.lineTo(x*S,y*S+S);}if(!at(x+1,y)){k++;ctx.moveTo(x*S+S,y*S);ctx.lineTo(x*S+S,y*S+S);}}
- ctx.stroke();document.getElementById("finfo").textContent=b+" Blöcke mit zusammen "+4*b+" Seiten · sichtbar: "+k+" ("+Math.round(100*k/(4*b))+" %)";}
+ ctx.stroke();$("finfo").textContent=b+" Blöcke haben zusammen "+4*b+" Seiten · gezeichnet werden müssen nur "+k+" ("+Math.round(100*k/(4*b))+" %)";}
 c.addEventListener("pointerdown",e=>{const p=M3D.pos(c,e),x=Math.floor(p.x/S),y=Math.floor(p.y/S);if(x>=0&&x<N&&y>=0&&y<M){g[y][x]^=1;draw();}});
 M3D.onTheme(draw);draw();
 })();
-(function(){ // Detailstufen
-const N=32,S=20,W=N*S+20,H=N*S*.6|0,R=Math.floor(H/S/4)*4,c=document.getElementById("c"),ctx=M3D.setup(c,W,R*S),h=[];
-for(let y=0;y<R;y++){h[y]=[];for(let x=0;x<N;x++)h[y][x]=Math.max(1,Math.round(3+2*Math.sin(x*.35)+2*Math.cos(y*.3)+Math.sin((x+y)*.7)));}
-let px=7.5,py=R-5.5,lod=true,dr=false;
-function draw(){ctx.clearRect(0,0,W,R*S);const ac=M3D.css("--ac"),bg=M3D.css("--bg"),tx=M3D.css("--tx");let n=0;
- const cell=(x,y,k)=>{let s=0;for(let j=0;j<k;j++)for(let i=0;i<k;i++)s+=h[y+j][x+i];
-  ctx.fillStyle=M3D.mix(bg,ac,.12+.8*Math.min(1,s/(k*k)/8));ctx.fillRect(10+x*S,y*S,k*S,k*S);ctx.strokeStyle=bg;ctx.lineWidth=1;ctx.strokeRect(10+x*S+.5,y*S+.5,k*S-1,k*S-1);n++;};
- const dist=(x,y,k)=>Math.hypot(x+k/2-px,y+k/2-py);
- for(let y=0;y<R;y+=4)for(let x=0;x<N;x+=4){if(lod&&dist(x,y,4)>13){cell(x,y,4);continue;}
-  for(let j=0;j<4;j+=2)for(let i=0;i<4;i+=2){if(lod&&dist(x+i,y+j,2)>6.5)cell(x+i,y+j,2);else for(let b=0;b<2;b++)for(let a=0;a<2;a++)cell(x+i+a,y+j+b,1);}}
- ctx.beginPath();ctx.arc(10+px*S,py*S,9,0,7);ctx.fillStyle=tx;ctx.fill();ctx.strokeStyle=bg;ctx.lineWidth=3;ctx.stroke();
- document.getElementById("info").textContent="Gezeichnete Felder: "+n+" von "+N*R;}
-function mv(e){const p=M3D.pos(c,e);px=Math.max(0,Math.min(N,(p.x-10)/S));py=Math.max(0,Math.min(R,p.y/S));draw();}
-c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
-document.getElementById("tabs").addEventListener("click",e=>{const b=e.target.closest("button");if(b){lod=b.dataset.m==="1";draw();}});M3D.onTheme(draw);draw();
+(function(){ // Detailstufen als Hügel
+const c=$("lod"),W=660,H=250,ctx=M3D.setup(c,W,H),D=16,hh=(x,z)=>Math.max(1,Math.round(1.5+6.5*Math.exp(-((x-7.5)**2+(z-7.5)**2)/30)+.8*Math.sin(x*.9)*Math.cos(z*.8)));
+function draw(){ctx.clearRect(0,0,W,H);const P=pal(),out=[];
+ [1,2,4].forEach((k,i)=>{const n=D/k,H2=[];for(let X=0;X<n;X++){H2[X]=[];for(let Z=0;Z<n;Z++){let s=0;for(let a=0;a<k;a++)for(let b=0;b<k;b++)s+=hh(X*k+a,Z*k+b);H2[X][Z]=Math.max(1,Math.round(s/(k*k)/k));}}
+  const get=(x,y,z)=>(x<0||z<0||x>=n||z>=n||y<0)?0:(y<H2[x][z]?1:0);
+  const f=M3D.iso(ctx,get,[n,Math.ceil(9/k)+1,n],{ox:112+i*218,oy:92,s:6.6*k,pal:P,line:M3D.css("--ik"),lw:.8});out.push(f);});
+ ctx.font=M3D.font(600);ctx.fillStyle=M3D.css("--mu");ctx.textAlign="center";["fein","mittel (2 · 2 · 2)","grob (4 · 4 · 4)"].forEach((t,i)=>ctx.fillText(t,112+i*218,H-8));ctx.textAlign="left";
+ $("lodi").textContent="Gezeichnete Flächen: fein "+out[0]+" · mittel "+out[1]+" · grob "+out[2];}
+M3D.onTheme(draw);draw();
+})();
+(function(){ // Abschnitte von oben
+const c=$("ch"),N=25,S=14,W=660,H=N*S+10,ctx=M3D.setup(c,W,H),OX=6,OY=5,sl=$("ca");let fov=true,lod=true;
+function draw(){ctx.clearRect(0,0,W,H);const a=+sl.value*Math.PI/180,d=[Math.cos(a),Math.sin(a)],ac=M3D.css("--ac"),bg=M3D.css("--bg"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),mu=M3D.css("--mu");
+ const lv=[M3D.mix(bg,ac,.95),M3D.mix(bg,ac,.55),M3D.mix(bg,ac,.25)],cnt=[0,0,0];let cost=0;
+ for(let y=0;y<N;y++)for(let x=0;x<N;x++){const dx=x-12,dy=y-12,r=Math.hypot(dx,dy);let vis=true;
+  if(fov&&r>1.5){vis=(dx*d[0]+dy*d[1])/r>=Math.cos(Math.PI/4)-.06;}
+  const X=OX+x*S,Y=OY+y*S;if(!vis){ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(X+.5,Y+.5,S-1,S-1);continue;}
+  const l=!lod?0:r<=4?0:r<=8?1:2;cnt[l]++;cost+=[1,.25,.0625][l];ctx.fillStyle=lv[l];ctx.fillRect(X+1,Y+1,S-1,S-1);}
+ const cx=OX+12.5*S,cy=OY+12.5*S;
+ if(fov){ctx.strokeStyle=tx;ctx.lineWidth=1.5;ctx.beginPath();[-1,1].forEach(s=>{const b=a+s*Math.PI/4;ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(b)*S*17,cy+Math.sin(b)*S*17);});ctx.save();ctx.beginPath();ctx.rect(OX,OY,N*S,N*S);ctx.clip();ctx.beginPath();[-1,1].forEach(s=>{const b=a+s*Math.PI/4;ctx.moveTo(cx,cy);ctx.lineTo(cx+Math.cos(b)*S*20,cy+Math.sin(b)*S*20);});ctx.stroke();ctx.restore();}
+ ctx.beginPath();ctx.arc(cx,cy,6,0,7);ctx.fillStyle=tx;ctx.fill();ctx.strokeStyle=bg;ctx.lineWidth=2;ctx.stroke();
+ ctx.font=M3D.font(600);const LX=OX+N*S+34;[["fein",lv[0]],["mittel",lv[1]],["grob",lv[2]],["nicht gezeichnet",null]].forEach(([t,col],i)=>{const y=40+i*34;
+  if(col){ctx.fillStyle=col;ctx.fillRect(LX,y,20,20);}else{ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(LX+.5,y+.5,19,19);}
+  ctx.fillStyle=mu;ctx.fillText(t+(i<3?": "+cnt[i]+" Abschnitte":": "+(N*N-cnt[0]-cnt[1]-cnt[2])+" Abschnitte"),LX+32,y+15);});
+ ctx.fillStyle=tx;ctx.font="600 34px Fraunces,Georgia,serif";ctx.fillText(Math.round(cost/(N*N)*100)+" %",LX,232);ctx.font=M3D.font(600);ctx.fillStyle=mu;ctx.fillText("des Aufwands von",LX,258);ctx.fillText("„alles fein zeichnen“",LX,278);
+ $("chi").textContent="Gezeichnet werden "+(cnt[0]+cnt[1]+cnt[2])+" von "+N*N+" Abschnitten. Eine gröbere Stufe hat etwa ein Viertel der Flächen der feineren.";
+ $("cb1").textContent="Blickfeld: "+(fov?"an":"aus");$("cb2").textContent="Detailstufen: "+(lod?"an":"aus");}
+sl.oninput=draw;$("cb1").onclick=()=>{fov=!fov;draw();};$("cb2").onclick=()=>{lod=!lod;draw();};M3D.onTheme(draw);draw();
 })();
 </script>
 </body>

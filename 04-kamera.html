@@ -11,10 +11,12 @@
 <div class="eyebrow">KAPITEL 4 VON 7</div>
 <h1>Kamera und Pixel</h1>
 <p class="lead">Die Welt besteht aus Dreiecken im Raum, der Bildschirm aus einem Raster von Pixeln. Der Weg dazwischen hat vier Schritte.</p>
-<ol><li>Alle Punkte aus Sicht der Kamera angeben</li><li>Punkte auf die Bildebene projizieren</li><li>Für jedes Dreieck die bedeckten Pixel bestimmen und einfärben (Rasterisierung)</li><li>Pro Pixel entscheiden, welches Dreieck vorn liegt (Tiefenpuffer)</li></ol>
-<h2>Schritt 1: Die Sicht der Kamera</h2>
-<p>Die Kamera steht irgendwo in der Welt und blickt in eine Richtung. Damit sich leichter rechnen lässt, verschiebt und dreht man die ganze Welt so, dass die Kamera im Ursprung steht und entlang der z-Achse blickt. Das sind genau die Operationen aus Kapitel 1: erst die Kameraposition abziehen, dann um den Blickwinkel zurückdrehen. Danach ist z einfach die Entfernung in Blickrichtung.</p>
-<h2>Schritt 2: Projektion</h2>
+<ol><li><a href="#sicht">Alle Punkte aus Sicht der Kamera angeben</a></li><li><a href="#projektion">Punkte auf die Bildebene projizieren</a></li><li><a href="#rasterisierung">Für jedes Dreieck die Pixel bestimmen und einfärben (Rasterisierung)</a></li><li><a href="#tiefenpuffer">Pro Pixel entscheiden, was vorn liegt (Tiefenpuffer)</a></li></ol>
+
+<h2 id="sicht">Schritt 1: Die Sicht der Kamera</h2>
+<p>Die Kamera steht irgendwo in der Welt und blickt in eine Richtung. Damit sich leichter rechnen lässt, verschiebt und dreht man die ganze Welt so, dass die Kamera im Ursprung steht und entlang der z-Achse blickt. Das sind die Operationen aus <a href="01-koordinaten.html">Kapitel 1</a>: erst die Kameraposition abziehen, dann um den Blickwinkel zurückdrehen. Danach ist z einfach die Entfernung in Blickrichtung.</p>
+
+<h2 id="projektion">Schritt 2: Projektion</h2>
 <p>Vor der Kamera steht im Abstand f die Bildebene. Der Bildpunkt eines Punktes P liegt dort, wo die Gerade von der Kamera zu P die Bildebene schneidet. In der Seitenansicht entstehen zwei ähnliche Dreiecke, und der <b>Strahlensatz</b> liefert:</p>
 <p class="formel">y′ ÷ f = y ÷ z &nbsp;&nbsp;⟹&nbsp;&nbsp; y′ = y · f ÷ z</p>
 <div class="demo">
@@ -23,69 +25,121 @@
  <div class="info" id="sinfo"></div>
 </div>
 <p>Für x gilt dasselbe. Durch die Division durch z erscheint Entferntes kleiner: Das ist die ganze Perspektive.</p>
-<pre><code>def projiziere(p, f):
+<pre><code><span class="hk">def</span> <span class="hd">projiziere</span>(p, f):
     x, y, z = p
-    return [x * f / z, y * f / z]</code></pre>
+    <span class="hk">return</span> [x * f / z, y * f / z]</code></pre>
 <div class="demo">
  <div class="bar"><label class="sl">Abstand z <input id="d" type="range" min="5" max="26" step="0.1" value="9"></label><span>Ziehen zum Drehen</span></div>
  <canvas id="c" role="img" aria-label="Würfel in verschiedenem Abstand"></canvas>
  <div class="info" id="info"></div>
 </div>
-<p>Der Aufwand ist eine Multiplikation und eine Division pro Koordinate, für n Eckpunkte also O(n).</p>
-<h2>Schritt 3: Rasterisierung</h2>
-<p>Nach der Projektion sind die drei Ecken eines Dreiecks Punkte auf dem Bildschirm. Welche Pixel liegen darin? Das Werkzeug dafür ist die <b>Kantenfunktion</b>. Sie sagt, auf welcher Seite der Geraden von a nach b ein Punkt p liegt:</p>
-<pre><code>def kante(a, b, p):
-    return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])</code></pre>
-<p>Das Ergebnis ist positiv auf der einen Seite, negativ auf der anderen und null genau auf der Geraden. Ein Punkt liegt im Dreieck, wenn er bei allen drei Kanten auf derselben Seite liegt. Geprüft werden nur die Pixel im kleinsten Rechteck, das das Dreieck umschließt:</p>
-<pre><code>flaeche = kante(a, b, c)
-for py in range(y_min, y_max + 1):
-    for px in range(x_min, x_max + 1):
-        p = [px + 0.5, py + 0.5]                 # Pixelmitte
-        g_a = kante(b, c, p) / flaeche
-        g_b = kante(c, a, p) / flaeche
-        g_c = kante(a, b, p) / flaeche
-        if g_a &gt;= 0 and g_b &gt;= 0 and g_c &gt;= 0:   # p liegt im Dreieck
-            setze_pixel(px, py, farbe(g_a, g_b, g_c))</code></pre>
-<h3>Gewichte: von den Ecken zu jedem Pixel</h3>
-<p>Die drei Werte g_a, g_b und g_c sind mehr als ein Test. Sie sind <b>Gewichte</b>, die zusammen immer 1 ergeben. An der Ecke a ist g_a = 1, auf der gegenüberliegenden Kante ist g_a = 0. Mit ihnen lässt sich jede Größe, die an den Ecken bekannt ist, auf jedes Pixel im Inneren übertragen:</p>
-<p class="formel">wert(p) = g_a · wert_a + g_b · wert_b + g_c · wert_c</p>
-<h3>Textur</h3>
-<p>Genau so kommt das Bild auf das Dreieck. Jede Ecke kennt ihre Stelle (u | v) in der Textur, mit Werten zwischen 0 und 1 (Kapitel 2). Für jedes Pixel werden u und v mit den Gewichten gemischt, und an dieser Stelle wird die Farbe aus dem Bild gelesen:</p>
-<pre><code>def farbe(g_a, g_b, g_c):
-    u = g_a * uv_a[0] + g_b * uv_b[0] + g_c * uv_c[0]
-    v = g_a * uv_a[1] + g_b * uv_b[1] + g_c * uv_c[1]
-    return textur[int(v * (hoehe - 1))][int(u * (breite - 1))]</code></pre>
-<div class="demo">
- <div class="bar"><div class="tabs" id="rt" data-for><button class="on" data-m="flat">Einfarbig</button><button data-m="w">Gewichte</button><button data-m="tex">Textur</button></div><span>Ziehe die Ecken a, b, c</span></div>
- <canvas id="r" role="img" aria-label="Rasterisierung eines Dreiecks"></canvas>
- <div class="info" id="rinfo"></div>
-</div>
-<p>In der Ansicht „Gewichte“ hat jede Ecke eine eigene Helligkeit, die Pixel dazwischen mischen sie. In der Ansicht „Textur“ ist die Textur ein Schachbrettmuster. Die gestrichelte Linie zeigt das umschließende Rechteck.</p>
-<p>Echte Grafikkarten teilen bei der Texturberechnung zusätzlich durch die Tiefe, damit das Bild auf schräg stehenden Flächen nicht verzerrt wirkt. Das Prinzip bleibt dasselbe.</p>
-<h2>Schritt 4: Der Tiefenpuffer</h2>
-<p>Mehrere Dreiecke können dasselbe Pixel bedecken. Sichtbar sein darf nur das vorderste. Die Dreiecke vorher nach Entfernung zu sortieren, wäre aufwendig und scheitert, wenn sich zwei Dreiecke durchdringen. Die Lösung ist ein zweites Feld, so groß wie das Bild, das für jedes Pixel die Tiefe des bisher nächsten Dreiecks speichert. Die Tiefe z eines Pixels ergibt sich wieder aus den Gewichten.</p>
-<pre><code>tiefe = [[UNENDLICH] * breite for _ in range(hoehe)]
 
-# ... in der Pixelschleife:
-z = g_a * z_a + g_b * z_b + g_c * z_c
-if z &lt; tiefe[py][px]:            # näher als alles bisher?
-    tiefe[py][px] = z
-    setze_pixel(px, py, farbe(g_a, g_b, g_c))</code></pre>
+<h2 id="rasterisierung">Schritt 3: Rasterisierung</h2>
+<p>Nach der Projektion kennt der Computer von jedem Dreieck drei Punkte auf dem Bildschirm. Der Bildschirm ist aber ein Raster aus Pixeln, wie du es von der Pixelgrafik kennst. Die Rasterisierung beantwortet zwei Fragen: <b>Welche Pixel gehören zum Dreieck?</b> Und: <b>Welche Farbe bekommt jedes davon?</b></p>
+
+<h3>Frage 1: Welche Pixel gehören zum Dreieck?</h3>
+<p>Das Verfahren ist schlicht: Der Computer geht alle Pixel in der Nähe des Dreiecks der Reihe nach durch. Bei jedem prüft er, ob die Pixelmitte im Dreieck liegt. Wenn ja, wird das Pixel gefärbt. „In der Nähe“ heißt: im kleinsten Rechteck, das das Dreieck umschließt.</p>
 <div class="demo">
- <div class="bar"><div class="tabs" id="zt" data-for><button class="on" data-m="0">Ohne Tiefenpuffer</button><button data-m="1">Mit Tiefenpuffer</button></div><span>Zwei Dreiecke, die sich durchdringen</span></div>
- <canvas id="z" role="img" aria-label="Zwei Dreiecke mit und ohne Tiefenpuffer"></canvas>
- <div class="info" id="zinfo"></div>
+ <div class="bar"><button class="btn" id="r1b">Abspielen</button><label class="sl">Fortschritt <input id="r1s" type="range" min="0" max="100" value="0" style="width:230px"></label><span>Ecken lassen sich ziehen</span></div>
+ <canvas id="r1" role="img" aria-label="Pixel für Pixel wird geprüft, ob es im Dreieck liegt"></canvas>
+ <div class="info" id="r1i"></div>
 </div>
-<h2>Aufwand</h2>
-<p>Die Projektion kostet O(n) für n Eckpunkte. Die Rasterisierung kostet pro Dreieck so viele Schritte, wie Pixel im umschließenden Rechteck liegen. Der Tiefenpuffer braucht einen Vergleich pro Pixel und macht die Reihenfolge der Dreiecke gleichgültig. Entscheidend ist: Jedes Dreieck und jedes Pixel wird unabhängig von allen anderen berechnet. Deshalb kann die Grafikkarte Tausende davon gleichzeitig bearbeiten.</p>
-<div class="merke"><b>Merke:</b> Projektion: x′ = x · f ÷ z und y′ = y · f ÷ z (Strahlensatz). Rasterisierung: Die Kantenfunktion entscheidet, welche Pixel im Dreieck liegen, und liefert Gewichte, mit denen Tiefe und Texturkoordinaten von den Ecken auf die Pixel übertragen werden. Der Tiefenpuffer speichert pro Pixel die kleinste Tiefe.</div>
-<div class="quiz" data-q="Der Punkt (2 | 1 | 4) wird mit f = 2 projiziert. Wo liegt der Bildpunkt?" data-c="0" data-why="x′ = 2 · 2 ÷ 4 = 1 und y′ = 1 · 2 ÷ 4 = 0,5."><ul><li>(1 | 0,5)</li><li>(4 | 2)</li><li>(0,5 | 0,25)</li></ul></div><div class="quiz" data-q="Ein Pixel hat die Gewichte g_a = 0,5, g_b = 0,5 und g_c = 0. Wo liegt es?" data-c="1" data-why="g_c = 0 heißt: auf der Kante gegenüber von c. Gleiche Gewichte für a und b heißt: in der Mitte dazwischen."><ul><li>in der Mitte des Dreiecks</li><li>in der Mitte der Kante von a nach b</li><li>auf der Ecke c</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Berechne <code>kante(a, b, p)</code> für a = [0, 0], b = [4, 0] und die Punkte p = [1, 2] und p = [1, −2]. Was bedeutet das Vorzeichen?</div><summary>Lösung anzeigen</summary><div class="t">Für [1, 2]: 4 · 2 − 0 · 1 = 8. Für [1, −2]: 4 · (−2) − 0 = −8. Die Punkte liegen auf verschiedenen Seiten der Geraden durch a und b.</div></details><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Ein Dreieck hat an den Ecken die Tiefen z_a = 2, z_b = 4 und z_c = 8. Welche Tiefe hat das Pixel mit den Gewichten 0,25 / 0,25 / 0,5?</div><summary>Lösung anzeigen</summary><div class="t">z = 0,25 · 2 + 0,25 · 4 + 0,5 · 8 = 0,5 + 1 + 4 = 5,5.</div></details>
+<p>Gestrichelt ist das umschließende Rechteck. Ein kleiner Punkt bedeutet: geprüft, liegt außerhalb. Ein gefülltes Kästchen bedeutet: gehört zum Dreieck.</p>
+
+<h3>Wie prüft man „liegt im Dreieck“?</h3>
+<p>Die Prüfung wird auf eine einfachere Frage zurückgeführt: Auf welcher Seite einer Geraden liegt ein Punkt? Die Gerade von a nach b teilt die Ebene in zwei Hälften. Die Funktion <code>kante</code> liefert für die eine Hälfte positive Zahlen, für die andere negative und genau auf der Geraden null.</p>
+<pre><code><span class="hk">def</span> <span class="hd">kante</span>(a, b, p):
+    <span class="hk">return</span> (b[<span class="hn">0</span>] - a[<span class="hn">0</span>]) * (p[<span class="hn">1</span>] - a[<span class="hn">1</span>]) - (b[<span class="hn">1</span>] - a[<span class="hn">1</span>]) * (p[<span class="hn">0</span>] - a[<span class="hn">0</span>])</code></pre>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="k2t" data-for><button class="on" data-m="1">Eine Kante</button><button data-m="3">Drei Kanten</button></div><span>Ziehe den Punkt p</span></div>
+ <canvas id="k2" role="img" aria-label="Auf welcher Seite der Kante liegt der Punkt"></canvas>
+ <div class="info" id="k2i"></div>
+</div>
+<p>Schalte auf „Drei Kanten“: Ein Dreieck hat drei Kanten, a nach b, b nach c und c nach a. Liegt p bei allen dreien auf der Innenseite, ist p im Dreieck. Ist auch nur ein Wert negativ, liegt p außerhalb. Mehr als diese drei kleinen Rechnungen braucht der Test nicht.</p>
+<p>Zusammen mit der Schleife über das Rechteck ist das der ganze Algorithmus:</p>
+<pre><code><span class="hk">for</span> py <span class="hk">in</span> range(y_min, y_max + <span class="hn">1</span>):               <span class="hc"># Zeile für Zeile</span>
+    <span class="hk">for</span> px <span class="hk">in</span> range(x_min, x_max + <span class="hn">1</span>):           <span class="hc"># Pixel für Pixel</span>
+        p = [px + <span class="hn">0.5</span>, py + <span class="hn">0.5</span>]                 <span class="hc"># Pixelmitte</span>
+        <span class="hk">if</span> kante(a, b, p) &gt;= <span class="hn">0</span> <span class="hk">and</span> kante(b, c, p) &gt;= <span class="hn">0</span> <span class="hk">and</span> kante(c, a, p) &gt;= <span class="hn">0</span>:
+            setze_pixel(px, py, farbe)</code></pre>
+
+<h3 id="textur">Frage 2: Welche Farbe? Die Textur</h3>
+<p>Im einfachsten Fall hat das ganze Dreieck eine Farbe. So sieht der Würfel links aus. Eine Kiste aus Holz bräuchte so aber Tausende winziger Dreiecke, nur um die Bretter darzustellen.</p>
+<p>Deshalb verwendet man eine <b>Textur</b>. Das ist ein ganz gewöhnliches Bild, das wie ein Aufkleber auf die Dreiecke gelegt wird. Der Würfel bleibt bei 12 Dreiecken, die Einzelheiten stecken im Bild.</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="txt" data-for><button data-m="0">Ohne Textur</button><button class="on" data-m="1">Mit Textur</button></div><span>Ziehen zum Drehen</span></div>
+ <canvas id="tx" role="img" aria-label="Würfel mit und ohne Textur"></canvas>
+ <div class="info">Links die Textur: ein Bild mit 16 × 16 Pixeln. Rechts derselbe Würfel aus 12 Dreiecken.</div>
+</div>
+
+<h3 id="anteile">Welche Stelle der Textur gehört zu welchem Pixel?</h3>
+<p>Für die drei Ecken eines Dreiecks ist das festgelegt: Jede Ecke ist an einer Stelle der Textur „festgesteckt“. Diese Stelle wird mit zwei Zahlen (u | v) zwischen 0 und 1 angegeben und zusammen mit der Ecke gespeichert (<a href="02-figuren.html#aussehen">Kapitel 2</a>).</p>
+<p>Ein Pixel irgendwo im Dreieck liegt zwischen den Ecken. Seine Stelle in der Textur ist eine <b>Mischung</b> der drei Eckstellen. Wie stark jede Ecke zählt, hängt davon ab, wie nah das Pixel an ihr liegt. Diese drei <b>Anteile</b> ergeben zusammen immer 100 %.</p>
+<div class="demo">
+ <div class="bar"><span>Ziehe den Punkt p im Dreieck</span><span>Rechts: dieselbe Stelle in der Textur</span></div>
+ <canvas id="an" role="img" aria-label="Anteile der drei Ecken und zugehörige Stelle in der Textur"></canvas>
+ <div class="info" id="ani"></div>
+</div>
+<p>Probiere drei Stellen aus: genau auf einer Ecke (100 % für diese Ecke), in der Mitte einer Kante (je 50 % für die beiden Ecken dieser Kante) und in der Mitte des Dreiecks (je ein Drittel).</p>
+<p>Mit den Anteilen wird gemischt. Sind die Ecken an den Texturstellen u_a, u_b und u_c festgesteckt, dann gilt für das Pixel:</p>
+<p class="formel">u = Anteil_a · u_a + Anteil_b · u_b + Anteil_c · u_c</p>
+<p>Für v gilt dasselbe. An der Stelle (u | v) wird die Farbe aus dem Texturbild gelesen. Das ist die Farbe des Pixels.</p>
+<details class="mehr"><summary>Wie berechnet der Computer die Anteile?</summary>
+<p>Verbindet man p mit den drei Ecken, entstehen drei Teildreiecke. Der Anteil von a ist die Fläche des Teildreiecks, das a gegenüberliegt, geteilt durch die Fläche des ganzen Dreiecks. Je näher p an a rückt, desto größer wird dieses Teildreieck. Praktisch: <code>kante(b, c, p)</code> liefert genau das Doppelte dieser Teilfläche. Die drei Zahlen aus dem Innen-Test werden also einfach weiterverwendet.</p>
+<pre><code>flaeche   = kante(a, b, c)
+anteil_a  = kante(b, c, p) / flaeche
+anteil_b  = kante(c, a, p) / flaeche
+anteil_c  = kante(a, b, p) / flaeche</code></pre></details>
+
+<h2 id="tiefenpuffer">Schritt 4: Der Tiefenpuffer</h2>
+<p>Bisher wurde jedes Dreieck für sich gezeichnet. In einer Szene liegen aber viele Dreiecke hintereinander, und mehrere können dasselbe Pixel bedecken. Sichtbar sein darf nur das vorderste.</p>
+<p>Das fertige Bild ist eine Tabelle: Für jedes Pixel ist eine Farbe gespeichert. Der <b>Tiefenpuffer</b> ist eine zweite Tabelle mit genauso vielen Zeilen und Spalten. In ihr steht für jedes Pixel keine Farbe, sondern eine Zahl: <b>wie weit das entfernt ist, was an diesem Pixel gerade zu sehen ist</b>. Am Anfang steht überall „unendlich weit“.</p>
+<p>Die Regel beim Zeichnen lautet: Ein Pixel wird nur dann neu gefärbt, wenn das neue Dreieck dort <b>näher</b> ist als der Wert im Tiefenpuffer. Dann wird auch die neue Entfernung eingetragen.</p>
+<div class="demo">
+ <div class="bar"><span><button class="btn" id="zb0">Zurück</button> <button class="btn" id="zb1">Weiter</button></span><span id="zbs"></span></div>
+ <canvas id="zb" role="img" aria-label="Bild und Tiefenpuffer Schritt für Schritt"></canvas>
+ <div class="step" id="zbi"></div>
+</div>
+<p>Die ferne Fläche C wird zuletzt gezeichnet und landet trotzdem hinten. Die Reihenfolge, in der die Dreiecke gezeichnet werden, ist also gleichgültig. Niemand muss sie vorher sortieren.</p>
+<pre><code>UNENDLICH = float(<span class="hs">&quot;inf&quot;</span>)
+bild  = [[HINTERGRUND <span class="hk">for</span> x <span class="hk">in</span> range(breite)] <span class="hk">for</span> y <span class="hk">in</span> range(hoehe)]   <span class="hc"># Tabelle der Farben</span>
+tiefe = [[UNENDLICH   <span class="hk">for</span> x <span class="hk">in</span> range(breite)] <span class="hk">for</span> y <span class="hk">in</span> range(hoehe)]   <span class="hc"># Tabelle der Entfernungen</span>
+
+<span class="hk">def</span> <span class="hd">setze_pixel</span>(px, py, z, farbe):
+    <span class="hk">if</span> z &lt; tiefe[py][px]:           <span class="hc"># näher als alles, was hier bisher gezeichnet wurde?</span>
+        tiefe[py][px] = z
+        bild[py][px] = farbe</code></pre>
+<p>In der Demo hat jede Fläche überall dieselbe Entfernung. Ein schräg stehendes Dreieck hat an jeder Ecke eine andere Entfernung z. Für die Pixel dazwischen wird z genauso gemischt wie die Texturstelle: mit den <a href="#anteile">Anteilen</a>.</p>
+
+<h2 id="aufwand">Alles zusammen und der Aufwand</h2>
+<p>Die folgende Szene wird in deinem Browser mit genau diesen vier Schritten berechnet, ohne Grafikkarte. Die Würfel durchdringen sich teilweise. Der Tiefenpuffer löst das Pixel für Pixel richtig auf. Verändere die Zahl der Würfel und beobachte die Zähler.</p>
+<div class="demo">
+ <div class="bar"><label class="sl">Würfel <input id="an2" type="range" min="1" max="300" value="24" style="width:230px"><b id="an2v">24</b></label><span>Ziehen zum Drehen</span></div>
+ <canvas id="al" role="img" aria-label="Viele Würfel, mit dem Verfahren aus diesem Kapitel gezeichnet"></canvas>
+ <table class="zahlen"><tr><th>Schritt</th><th>Anzahl in diesem Bild</th></tr>
+ <tr><td>Eckpunkte gedreht und projiziert (Schritt 1 und 2)</td><td id="z1"></td></tr>
+ <tr><td>Dreiecke gezeichnet (Rückseiten weggelassen)</td><td id="z2"></td></tr>
+ <tr><td>Pixel geprüft (Schritt 3)</td><td id="z3"></td></tr>
+ <tr><td>davon vom Tiefenpuffer verworfen (Schritt 4)</td><td id="z4"></td></tr>
+ <tr><td>Pixel gefärbt</td><td id="z5"></td></tr>
+ <tr><td>Rechenzeit in deinem Browser</td><td id="z6"></td></tr></table>
+</div>
+<p>Was du ablesen kannst:</p>
+<ul><li><b>Eckpunkte und Dreiecke</b> wachsen genau im Gleichschritt mit der Zahl der Würfel. Doppelt so viele Würfel bedeuten doppelt so viel Arbeit: linearer Aufwand, O(n).</li>
+<li><b>Geprüfte Pixel</b> hängen davon ab, wie groß die Dreiecke auf dem Bildschirm sind. Viele kleine Dreiecke kosten wenig, wenige bildschirmfüllende kosten viel.</li>
+<li><b>Verworfene Pixel</b> sind vergebliche Arbeit: Sie wurden berechnet, lagen aber hinter etwas anderem. Je mehr sich überdeckt, desto größer wird dieser Anteil. <a href="07-weltmodell.html">Kapitel 7</a> zeigt, wie man Verdecktes gar nicht erst zeichnet.</li>
+<li>Kein Schritt braucht das Ergebnis eines anderen Dreiecks oder Pixels, außer dem einen Vergleich im Tiefenpuffer. Deshalb lässt sich die Arbeit auf sehr viele Recheneinheiten verteilen. Das ist die Aufgabe der Grafikkarte (<a href="06-geschichte.html#grafikkarte">Kapitel 6</a>).</li></ul>
+
+<div class="merke"><div class="mt">Merke</div>Projektion: x′ = x · f ÷ z und y′ = y · f ÷ z (Strahlensatz). Rasterisierung: Für jedes Pixel im umschließenden Rechteck prüft die Kantenfunktion, ob es im Dreieck liegt. Eine Textur ist ein Bild, das auf die Dreiecke gelegt wird. Die Stelle im Bild wird aus den Anteilen der drei Ecken gemischt. Der Tiefenpuffer ist eine zweite Tabelle, die pro Pixel die Entfernung des bisher Nächsten speichert.</div>
+<div class="quiz" data-q="Der Punkt (2 | 1 | 4) wird mit f = 2 projiziert. Wo liegt der Bildpunkt?" data-c="0" data-why="x′ = 2 · 2 ÷ 4 = 1 und y′ = 1 · 2 ÷ 4 = 0,5."><ul><li>(1 | 0,5)</li><li>(4 | 2)</li><li>(0,5 | 0,25)</li></ul></div><div class="quiz" data-q="Ein Pixel hat die Anteile a = 50 %, b = 50 %, c = 0 %. Wo liegt es?" data-c="1" data-why="0 % für c heißt: auf der Kante gegenüber von c. Gleiche Anteile für a und b heißt: genau dazwischen."><ul><li>in der Mitte des Dreiecks</li><li>in der Mitte der Kante von a nach b</li><li>auf der Ecke c</li></ul></div><div class="quiz" data-q="Im Tiefenpuffer steht an einem Pixel der Wert 4. Ein neues Dreieck hat dort die Entfernung 6. Was passiert?" data-c="1" data-why="6 ist weiter weg als 4, das neue Dreieck liegt dort also hinter dem, was schon zu sehen ist."><ul><li>Das Pixel wird neu gefärbt.</li><li>Nichts, das Pixel bleibt, wie es ist.</li><li>Die Werte werden gemittelt.</li></ul></div><div class="aufgabe"><p><b>Aufgabe:</b> Berechne <code>kante(a, b, p)</code> für a = [0, 0], b = [4, 0] und die Punkte p = [1, 2] und p = [1, −2]. Was sagt das Vorzeichen?</p><details><summary>Lösung anzeigen</summary><p>Für [1, 2]: 4 · 2 − 0 · 1 = 8. Für [1, −2]: 4 · (−2) − 0 · 1 = −8. Die beiden Punkte liegen auf verschiedenen Seiten der Geraden durch a und b.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Die Ecken eines Dreiecks sind in der Textur bei u_a = 0, u_b = 1 und u_c = 0,5 festgesteckt. Welches u gehört zu dem Pixel mit den Anteilen 20 %, 60 % und 20 %?</p><details><summary>Lösung anzeigen</summary><p>u = 0,2 · 0 + 0,6 · 1 + 0,2 · 0,5 = 0 + 0,6 + 0,1 = 0,7.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Drei Flächen werden nacheinander auf dasselbe Pixel gezeichnet, mit den Entfernungen 7, 3 und 5. Welche Werte stehen nacheinander im Tiefenpuffer, und welche Fläche ist am Ende sichtbar?</p><details><summary>Lösung anzeigen</summary><p>Start: unendlich. Nach der ersten Fläche: 7. Nach der zweiten: 3, denn 3 ist kleiner als 7. Die dritte wird verworfen, denn 5 ist nicht kleiner als 3. Sichtbar ist die zweite Fläche.</p></details></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
+const $=i=>document.getElementById(i),edge=M3D.edge;
+function grid(ctx,N,M,S,ox){ctx.strokeStyle=M3D.css("--bd");ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=N;x++){ctx.moveTo(ox+x*S+.5,0);ctx.lineTo(ox+x*S+.5,M*S);}for(let y=0;y<=M;y++){ctx.moveTo(ox,y*S+.5);ctx.lineTo(ox+N*S,y*S+.5);}ctx.stroke();}
 (function(){ // Seitenansicht
-const c=document.getElementById("s"),W=660,H=320,ctx=M3D.setup(c,W,H),E=[46,170],S=44,f=2;let P=[8,2.2],dr=false;
+const c=$("s"),W=660,H=320,ctx=M3D.setup(c,W,H),E=[46,170],S=44,f=2;let P=[8,2.2],dr=false;
 function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),bd=M3D.css("--bd2");
  const X=z=>E[0]+z*S,Y=y=>E[1]-y*S,yp=P[1]*f/P[0];ctx.font=M3D.font(600);
  ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(E[0],E[1]);ctx.lineTo(W-8,E[1]);ctx.stroke();ctx.setLineDash([]);
@@ -97,52 +151,132 @@ function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu
  ctx.fillStyle=tx;ctx.beginPath();ctx.arc(E[0],E[1],6,0,7);ctx.fill();
  ctx.fillStyle=ac;ctx.beginPath();ctx.arc(X(f),Y(yp),6,0,7);ctx.fill();ctx.fillText("y′",X(f)+10,Y(yp/2)+5);
  ctx.fillStyle=tx;ctx.beginPath();ctx.arc(X(P[0]),Y(P[1]),9,0,7);ctx.fill();ctx.fillText("P",X(P[0])+13,Y(P[1])-9);ctx.fillStyle=mu;ctx.fillText("y",X(P[0])+9,Y(P[1]/2)+5);
- document.getElementById("sinfo").textContent="y = "+M3D.de(P[1])+" · z = "+M3D.de(P[0])+" · f = 2 → y′ = "+M3D.de(P[1])+" · 2 ÷ "+M3D.de(P[0])+" = "+M3D.de(yp,2);}
+ $("sinfo").textContent="y = "+M3D.de(P[1])+" · z = "+M3D.de(P[0])+" · f = 2 → y′ = "+M3D.de(P[1])+" · 2 ÷ "+M3D.de(P[0])+" = "+M3D.de(yp,2);}
 function mv(e){const p=M3D.pos(c,e);P=[Math.max(2.6,Math.min(13.4,(p.x-E[0])/S)),Math.max(-3,Math.min(3.3,(E[1]-p.y)/S))];draw();}
 c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
 M3D.onTheme(draw);draw();
 })();
 (function(){ // Würfel mit Abstand
-const c=document.getElementById("c"),W=660,H=300,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1),st={ax:0.5,ay:0.6},d=document.getElementById("d");
+const c=$("c"),W=660,H=300,ctx=M3D.setup(c,W,H),mesh=M3D.cube(1),st={ax:-0.5,ay:0.6},d=$("d");
 function draw(){ctx.clearRect(0,0,W,H);M3D.drawMesh(ctx,mesh,{ax:st.ax,ay:st.ay,cam:{cx:W/2,cy:H/2,dist:+d.value,f:9,scale:52},mode:"fill"});
- document.getElementById("info").textContent="z = "+M3D.de(+d.value)+" · f = 9 → Vergrößerung f ÷ z = "+M3D.de(9/d.value,2);}
+ $("info").textContent="z = "+M3D.de(+d.value)+" · f = 9 → Vergrößerung f ÷ z = "+M3D.de(9/d.value,2);}
 d.oninput=draw;M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
 })();
-const edge=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
-(function(){ // Raster
-const c=document.getElementById("r"),N=33,M=19,S=20,W=N*S,H=M*S,ctx=M3D.setup(c,W,H);
-const v=[[5.3,15.6],[28.2,13.4],[14.6,2.3]],uv=[[0,1],[1,1],[.5,0]];let sel=-1,mode="flat";
-function draw(){ctx.clearRect(0,0,W,H);const ac=M3D.css("--ac"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),mu=M3D.css("--mu"),c1=M3D.css("--c1"),c3=M3D.css("--c3"),bg=M3D.css("--bg");
- ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=N;x++){ctx.moveTo(x*S+.5,0);ctx.lineTo(x*S+.5,H);}for(let y=0;y<=M;y++){ctx.moveTo(0,y*S+.5);ctx.lineTo(W,y*S+.5);}ctx.stroke();
- const x0=Math.max(0,Math.floor(Math.min(...v.map(q=>q[0])))),x1=Math.min(N-1,Math.floor(Math.max(...v.map(q=>q[0])))),y0=Math.max(0,Math.floor(Math.min(...v.map(q=>q[1])))),y1=Math.min(M-1,Math.floor(Math.max(...v.map(q=>q[1]))));
- const ar=edge(v[0],v[1],v[2]);let n=0,t=0;
- if(ar)for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){t++;const p=[x+.5,y+.5],g=[edge(v[1],v[2],p)/ar,edge(v[2],v[0],p)/ar,edge(v[0],v[1],p)/ar];
-  if(g[0]<0||g[1]<0||g[2]<0)continue;n++;
-  if(mode==="flat")ctx.fillStyle=M3D.mix(bg,ac,.6);
-  else if(mode==="w")ctx.fillStyle=M3D.mix(c1,c3,g[1]+g[2]*.5);
-  else{const u=g[0]*uv[0][0]+g[1]*uv[1][0]+g[2]*uv[2][0],w=g[0]*uv[0][1]+g[1]*uv[1][1]+g[2]*uv[2][1];ctx.fillStyle=(Math.floor(u*6)+Math.floor(w*6))%2?c1:c3;}
-  ctx.fillRect(x*S+1,y*S+1,S-1,S-1);}
+(function(){ // Pixel für Pixel
+const c=$("r1"),N=33,M=17,S=20,W=N*S,H=M*S,ctx=M3D.setup(c,W,H),sl=$("r1s"),bt=$("r1b");
+let v=[[5.3,14.6],[28.2,12.4],[14.6,2.3]],sel=-1,timer=null;
+const box=()=>[Math.max(0,Math.floor(Math.min(...v.map(q=>q[0])))),Math.min(N-1,Math.floor(Math.max(...v.map(q=>q[0])))),Math.max(0,Math.floor(Math.min(...v.map(q=>q[1])))),Math.min(M-1,Math.floor(Math.max(...v.map(q=>q[1]))))];
+function draw(){ctx.clearRect(0,0,W,H);grid(ctx,N,M,S,0);const ac=M3D.css("--ac"),tx=M3D.css("--tx"),mu=M3D.css("--mu"),bg=M3D.css("--bg");
+ const [x0,x1,y0,y1]=box(),T=(x1-x0+1)*(y1-y0+1);sl.max=T;const k=Math.min(+sl.value,T);let i=0,n=0,cur=null;
+ for(let y=y0;y<=y1&&i<k;y++)for(let x=x0;x<=x1&&i<k;x++){i++;const p=[x+.5,y+.5],e=[edge(v[0],v[1],p),edge(v[1],v[2],p),edge(v[2],v[0],p)];
+  if(e.every(q=>q>=0)||e.every(q=>q<=0)){n++;ctx.fillStyle=M3D.mix(bg,ac,.6);ctx.fillRect(x*S+1,y*S+1,S-1,S-1);}
+  else{ctx.fillStyle=mu;ctx.beginPath();ctx.arc(x*S+S/2,y*S+S/2,1.6,0,7);ctx.fill();}cur=[x,y];}
  ctx.setLineDash([5,5]);ctx.strokeStyle=mu;ctx.lineWidth=1.5;ctx.strokeRect(x0*S,y0*S,(x1-x0+1)*S,(y1-y0+1)*S);ctx.setLineDash([]);
- ctx.beginPath();v.forEach((q,i)=>i?ctx.lineTo(q[0]*S,q[1]*S):ctx.moveTo(q[0]*S,q[1]*S));ctx.closePath();ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.stroke();
- ctx.font=M3D.font(700);v.forEach((q,i)=>{ctx.beginPath();ctx.arc(q[0]*S,q[1]*S,8,0,7);ctx.fillStyle=tx;ctx.fill();ctx.fillText("abc"[i],q[0]*S+(i==1?12:-22),q[1]*S+(i==2?-10:20));});
- document.getElementById("rinfo").textContent="Geprüfte Pixel im Rechteck: "+t+" · davon im Dreieck: "+n;}
-c.addEventListener("pointerdown",e=>{const p=M3D.pos(c,e);sel=v.findIndex(q=>Math.hypot(q[0]*S-p.x,q[1]*S-p.y)<26);if(sel>=0)c.setPointerCapture(e.pointerId);});
-c.addEventListener("pointermove",e=>{if(sel<0)return;const p=M3D.pos(c,e);v[sel]=[Math.max(.2,Math.min(N-.2,p.x/S)),Math.max(.2,Math.min(M-.2,p.y/S))];draw();});
-c.addEventListener("pointerup",()=>sel=-1);
-document.getElementById("rt").addEventListener("click",e=>{const b=e.target.closest("button");if(b){mode=b.dataset.m;draw();}});M3D.onTheme(draw);draw();
+ ctx.beginPath();v.forEach((q,j)=>j?ctx.lineTo(q[0]*S,q[1]*S):ctx.moveTo(q[0]*S,q[1]*S));ctx.closePath();ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.stroke();
+ v.forEach(q=>{ctx.beginPath();ctx.arc(q[0]*S,q[1]*S,7,0,7);ctx.fillStyle=tx;ctx.fill();});
+ if(cur&&k<T){ctx.strokeStyle=tx;ctx.lineWidth=3;ctx.strokeRect(cur[0]*S,cur[1]*S,S,S);}
+ $("r1i").textContent="Geprüfte Pixel: "+k+" von "+T+" · davon im Dreieck: "+n;}
+function stop(){clearInterval(timer);timer=null;bt.textContent="Abspielen";}
+bt.onclick=()=>{if(timer)return stop();if(+sl.value>=+sl.max)sl.value=0;bt.textContent="Anhalten";
+ timer=setInterval(()=>{sl.value=+sl.value+2;draw();if(+sl.value>=+sl.max)stop();},25);};
+sl.oninput=()=>{stop();draw();};
+c.addEventListener("pointerdown",e=>{const p=M3D.pos(c,e);sel=v.findIndex(q=>Math.hypot(q[0]*S-p.x,q[1]*S-p.y)<26);if(sel>=0){c.setPointerCapture(e.pointerId);stop();}});
+c.addEventListener("pointermove",e=>{if(sel<0)return;const p=M3D.pos(c,e);v[sel]=[Math.max(.2,Math.min(N-.2,p.x/S)),Math.max(.2,Math.min(M-.2,p.y/S))];sl.value=sl.max=1e4;draw();sl.value=sl.max;});
+c.addEventListener("pointerup",()=>sel=-1);M3D.onTheme(draw);draw();sl.value=Math.round(sl.max*.45);draw();
 })();
-(function(){ // Tiefenpuffer
-const c=document.getElementById("z"),N=33,M=17,S=20,W=N*S,H=M*S,ctx=M3D.setup(c,W,H);let zb=false;
-const T=[{v:[[3,4],[30,7],[9,15.5]],z:[2,10,6],col:"--c1"},{v:[[29.5,2],[4,9.5],[27,15.5]],z:[3,9,5],col:"--c3"}];
-function draw(){ctx.clearRect(0,0,W,H);ctx.strokeStyle=M3D.css("--bd");ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=N;x++){ctx.moveTo(x*S+.5,0);ctx.lineTo(x*S+.5,H);}for(let y=0;y<=M;y++){ctx.moveTo(0,y*S+.5);ctx.lineTo(W,y*S+.5);}ctx.stroke();
- const depth=new Float32Array(N*M).fill(Infinity);let skipped=0;
- T.forEach(t=>{const v=t.v,ar=edge(v[0],v[1],v[2]);ctx.fillStyle=M3D.css(t.col);
-  for(let y=0;y<M;y++)for(let x=0;x<N;x++){const p=[x+.5,y+.5],g=[edge(v[1],v[2],p)/ar,edge(v[2],v[0],p)/ar,edge(v[0],v[1],p)/ar];
-   if(g[0]<0||g[1]<0||g[2]<0)continue;const z=g[0]*t.z[0]+g[1]*t.z[1]+g[2]*t.z[2];
-   if(zb){if(z>=depth[y*N+x]){skipped++;continue;}depth[y*N+x]=z;}
-   ctx.fillRect(x*S+1,y*S+1,S-1,S-1);}});
- document.getElementById("zinfo").textContent=zb?"Pro Pixel gewinnt die kleinere Tiefe. "+skipped+" Pixel des zweiten Dreiecks wurden verworfen.":"Das zuletzt gezeichnete Dreieck überdeckt alles, auch dort, wo es eigentlich hinten liegt.";}
-document.getElementById("zt").addEventListener("click",e=>{const b=e.target.closest("button");if(b){zb=b.dataset.m==="1";draw();}});M3D.onTheme(draw);draw();
+(function(){ // Kantenfunktion (y nach oben)
+const c=$("k2"),W=660,H=340,S=44,ctx=M3D.setup(c,W,H),X=x=>x*S,Y=y=>H-y*S;let mode=1,p=[5.5,5],dr=false;
+const T=[[2,1.5],[12,2.5],[6,6.5]];
+const k=(a,b,q)=>(b[0]-a[0])*(q[1]-a[1])-(b[1]-a[1])*(q[0]-a[0]),vz=v=>(v>0?"+":"")+M3D.de(v,1);
+function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),no=M3D.css("--no"),bd=M3D.css("--bd"),bg=M3D.css("--bg");
+ ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.beginPath();for(let x=0;x<=15;x++){ctx.moveTo(X(x)+.5,0);ctx.lineTo(X(x)+.5,H);}for(let y=0;y<=7;y++){ctx.moveTo(0,Y(y)+.5);ctx.lineTo(W,Y(y)+.5);}ctx.stroke();
+ ctx.font=M3D.font(700);const dot=(q,n,col)=>{ctx.beginPath();ctx.arc(X(q[0]),Y(q[1]),7,0,7);ctx.fillStyle=col;ctx.fill();ctx.fillText(n,X(q[0])-5,Y(q[1])+26);};
+ if(mode===1){const a=T[0],b=T[1],dx=b[0]-a[0],dy=b[1]-a[1],A=[a[0]-dx*3,a[1]-dy*3],B=[b[0]+dx*3,b[1]+dy*3];
+  ctx.beginPath();ctx.moveTo(X(A[0]),Y(A[1]));ctx.lineTo(X(B[0]),Y(B[1]));ctx.lineTo(X(B[0]),-50);ctx.lineTo(X(A[0]),-50);ctx.closePath();ctx.fillStyle=M3D.mix(bg,ac,.12);ctx.fill();
+  ctx.strokeStyle=mu;ctx.lineWidth=1.5;ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(X(A[0]),Y(A[1]));ctx.lineTo(X(B[0]),Y(B[1]));ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle=tx;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(X(a[0]),Y(a[1]));ctx.lineTo(X(b[0]),Y(b[1]));ctx.stroke();
+  const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];ctx.beginPath();ctx.moveTo(X(m[0])+10,Y(m[1])-2);ctx.lineTo(X(m[0])-6,Y(m[1])-9);ctx.lineTo(X(m[0])-3,Y(m[1])+9);ctx.closePath();ctx.fillStyle=tx;ctx.fill();
+  dot(a,"a",tx);dot(b,"b",tx);ctx.fillStyle=mu;ctx.font=M3D.font(600);ctx.fillText("positiv",X(1),Y(6.4));ctx.fillText("negativ",X(12.6),Y(.6));ctx.font=M3D.font(700);
+  const v=k(a,b,p);dot(p,"p",v>=0?ac:no);
+  $("k2i").textContent="kante(a, b, p) = ("+b[0]+" − "+a[0]+") · ("+M3D.de(p[1])+" − "+M3D.de(a[1])+") − ("+M3D.de(b[1])+" − "+M3D.de(a[1])+") · ("+M3D.de(p[0])+" − "+a[0]+") = "+vz(v)+" → "+(v>0?"links von a nach b":v<0?"rechts von a nach b":"genau auf der Geraden");}
+ else{const e=[k(T[0],T[1],p),k(T[1],T[2],p),k(T[2],T[0],p)],inn=e.every(q=>q>=0);
+  ctx.beginPath();T.forEach((q,i)=>i?ctx.lineTo(X(q[0]),Y(q[1])):ctx.moveTo(X(q[0]),Y(q[1])));ctx.closePath();ctx.fillStyle=M3D.mix(bg,ac,inn?.2:.07);ctx.fill();
+  T.forEach((a,i)=>{const b=T[(i+1)%3];ctx.strokeStyle=e[i]>=0?ac:no;ctx.lineWidth=3.5;ctx.setLineDash(e[i]>=0?[]:[7,6]);ctx.beginPath();ctx.moveTo(X(a[0]),Y(a[1]));ctx.lineTo(X(b[0]),Y(b[1]));ctx.stroke();});ctx.setLineDash([]);
+  T.forEach((q,i)=>dot(q,"abc"[i],tx));dot(p,"p",inn?ac:no);
+  $("k2i").textContent="a→b: "+vz(e[0])+" · b→c: "+vz(e[1])+" · c→a: "+vz(e[2])+" → "+(inn?"alle nicht negativ: p liegt im Dreieck":"mindestens ein Wert negativ: p liegt außerhalb");}}
+function mv(e){const q=M3D.pos(c,e);p=[Math.round(Math.max(.5,Math.min(14.5,q.x/S))*2)/2,Math.round(Math.max(.5,Math.min(7.2,(H-q.y)/S))*2)/2];draw();}
+c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
+$("k2t").addEventListener("click",e=>{const b=e.target.closest("button");if(b){mode=+b.dataset.m;draw();}});M3D.onTheme(draw);draw();
+})();
+function theTex(){return M3D.crate(16,[M3D.rgb("--c1"),M3D.rgb("--c2"),M3D.rgb("--c3")]);}
+(function(){ // Würfel mit Textur
+const c=$("tx"),W=660,H=340,ctx=M3D.setup(c,W,H),RW=880,RH=680,r=M3D.raster(RW,RH),off=document.createElement("canvas");off.width=RW;off.height=RH;const o2=off.getContext("2d");
+const mesh=M3D.cube(1.15),st={ax:-0.45,ay:0.7,auto:true};let tex=true,T=theTex();
+function draw(){ctx.clearRect(0,0,W,H);r.clear(M3D.rgb("--bg"));
+ M3D.renderMesh(r,mesh,{ax:st.ax,ay:st.ay,cam:{cx:RW/2,cy:RH/2,dist:10,f:10,scale:175},tex:tex?T:null,dark:M3D.rgb("--c3"),light2:M3D.rgb("--c1")});
+ o2.putImageData(r.img,0,0);ctx.drawImage(off,220,0,440,340);
+ M3D.drawTex(ctx,T,20,90,160);ctx.strokeStyle=M3D.css("--bd2");ctx.lineWidth=1;ctx.strokeRect(20.5,90.5,160,160);
+ ctx.font=M3D.font(600);ctx.fillStyle=M3D.css("--mu");ctx.fillText("Textur",20,78);}
+M3D.drag(c,st,draw);M3D.onTheme(()=>{T=theTex();draw();});
+$("txt").addEventListener("click",e=>{const b=e.target.closest("button");if(b){tex=b.dataset.m==="1";draw();}});
+(function loop(){if(st.auto){st.ay+=0.005;draw();}requestAnimationFrame(loop);})();
+})();
+(function(){ // Anteile
+const c=$("an"),W=660,H=330,ctx=M3D.setup(c,W,H),V=[[40,275],[345,250],[175,78]],UV=[[0,1],[1,1],[.5,0]],TX=430,TY=92,TS=200;let p=[170,200],dr=false,T=theTex();
+const sh=q=>{const ar=edge(V[0],V[1],V[2]);return [edge(V[1],V[2],q)/ar,edge(V[2],V[0],q)/ar,edge(V[0],V[1],q)/ar];};
+function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),bg=M3D.css("--bg");const g=sh(p);
+ ctx.beginPath();V.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.fillStyle=M3D.mix(bg,ac,.1);ctx.fill();ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.stroke();
+ ctx.strokeStyle=mu;ctx.lineWidth=1;ctx.setLineDash([4,5]);V.forEach(q=>{ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(q[0],q[1]);ctx.stroke();});ctx.setLineDash([]);
+ ctx.font=M3D.font(700);V.forEach((q,i)=>{ctx.beginPath();ctx.arc(q[0],q[1],5+26*Math.sqrt(Math.max(0,g[i])),0,7);ctx.fillStyle=M3D.mix(bg,ac,.55);ctx.fill();
+  ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fillStyle=tx;ctx.fill();ctx.fillText("abc"[i]+": "+Math.round(g[i]*100)+" %",q[0]+(i===1?-30:i===2?22:-10),q[1]+(i===2?-14:38));});
+ ctx.beginPath();ctx.arc(p[0],p[1],8,0,7);ctx.fillStyle=tx;ctx.fill();ctx.fillText("p",p[0]+12,p[1]-10);
+ M3D.drawTex(ctx,T,TX,TY,TS);const U=UV.map(q=>[TX+q[0]*TS,TY+q[1]*TS]);
+ ctx.beginPath();U.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));ctx.closePath();ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.stroke();
+ U.forEach((q,i)=>{ctx.fillStyle=tx;ctx.beginPath();ctx.arc(q[0],q[1],4,0,7);ctx.fill();ctx.fillText("abc"[i],q[0]+(i===2?12:i===1?8:-18),q[1]+(i===2?-8:20));});
+ const u=g[0]*UV[0][0]+g[1]*UV[1][0]+g[2]*UV[2][0],v=g[0]*UV[0][1]+g[1]*UV[1][1]+g[2]*UV[2][1],mx=TX+u*TS,my=TY+v*TS;
+ ctx.beginPath();ctx.arc(mx,my,8,0,7);ctx.strokeStyle=bg;ctx.lineWidth=5;ctx.stroke();ctx.strokeStyle=tx;ctx.lineWidth=2.5;ctx.stroke();
+ const col=T.data[Math.min(15,Math.floor(v*16))*16+Math.min(15,Math.floor(u*16))];ctx.fillStyle="rgb("+col.join(",")+")";ctx.fillRect(TX,TY-72,30,30);ctx.strokeStyle=mu;ctx.lineWidth=1;ctx.strokeRect(TX+.5,TY-71.5,30,30);
+ ctx.fillStyle=mu;ctx.font=M3D.font(600);ctx.fillText("Farbe für das Pixel p",TX+40,TY-51);ctx.fillText("Dreieck auf dem Bildschirm",40,24);
+ $("ani").textContent="Anteile: a "+Math.round(g[0]*100)+" % · b "+Math.round(g[1]*100)+" % · c "+Math.round(g[2]*100)+" % → Stelle in der Textur (u | v) = ("+M3D.de(u,2)+" | "+M3D.de(v,2)+")";}
+function mv(e){const q=M3D.pos(c,e);let g=sh([q.x,q.y]).map(x=>Math.max(0,x));const s=g[0]+g[1]+g[2];g=g.map(x=>x/s);
+ [0,1,2].forEach(i=>{if(Math.hypot(q.x-V[i][0],q.y-V[i][1])<16)g=[0,1,2].map(j=>+(j===i));});
+ p=[g[0]*V[0][0]+g[1]*V[1][0]+g[2]*V[2][0],g[0]*V[0][1]+g[1]*V[1][1]+g[2]*V[2][1]];draw();}
+c.addEventListener("pointerdown",e=>{dr=true;c.setPointerCapture(e.pointerId);mv(e);});c.addEventListener("pointermove",e=>dr&&mv(e));c.addEventListener("pointerup",()=>dr=false);
+M3D.onTheme(()=>{T=theTex();draw();});draw();
+})();
+(function(){ // Tiefenpuffer Schritt für Schritt
+const c=$("zb"),N=13,M=8,S=24,W=660,H=M*S+34,ctx=M3D.setup(c,W,H),OX=[0,348],OY=30;let step=0;
+const F=[{n:"A",x:[1,7],y:[1,4],z:5,col:"--c2"},{n:"B",x:[5,10],y:[3,6],z:2,col:"--c3"},{n:"C",x:[3,12],y:[0,4],z:8,col:"--c1"}];
+const TXT=["Start: Das Bild ist leer. Im Tiefenpuffer steht überall „unendlich weit“ (hier als Punkt dargestellt).",
+ "Fläche A (Entfernung 5) wird gezeichnet. Überall gilt 5 < unendlich, also wird jedes ihrer Pixel gefärbt und die 5 eingetragen.",
+ "Fläche B (Entfernung 2) wird gezeichnet. Wo sie A überlappt, gilt 2 < 5: B ist näher und überschreibt A. Im Tiefenpuffer steht dort jetzt 2.",
+ "Fläche C (Entfernung 8) wird gezeichnet. Wo schon 5 oder 2 steht, ist C weiter weg und wird verworfen (Kreuze). Gefärbt wird C nur dort, wo noch nichts war."];
+function draw(){ctx.clearRect(0,0,W,H);const tx=M3D.css("--tx"),mu=M3D.css("--mu"),ac=M3D.css("--ac"),no=M3D.css("--no"),bg=M3D.css("--bg");
+ const col=Array(N*M).fill(null),dep=Array(N*M).fill(Infinity),chg=new Set(),rej=new Set();
+ for(let s=0;s<step;s++){const f=F[s];for(let y=f.y[0];y<=f.y[1];y++)for(let x=f.x[0];x<=f.x[1];x++){const i=y*N+x;
+  if(f.z<dep[i]){dep[i]=f.z;col[i]=f.col;if(s===step-1)chg.add(i);}else if(s===step-1)rej.add(i);}}
+ ctx.save();ctx.translate(0,OY);grid(ctx,N,M,S,OX[0]);grid(ctx,N,M,S,OX[1]);
+ ctx.font=M3D.font(600);ctx.textAlign="center";
+ for(let y=0;y<M;y++)for(let x=0;x<N;x++){const i=y*N+x,X0=OX[0]+x*S,X1=OX[1]+x*S,Y0=y*S;
+  if(col[i]){ctx.fillStyle=M3D.css(col[i]);ctx.fillRect(X0+1,Y0+1,S-1,S-1);}
+  if(dep[i]<Infinity){ctx.fillStyle=M3D.mix(bg,ac,.75-dep[i]*.075);ctx.fillRect(X1+1,Y0+1,S-1,S-1);}
+  ctx.fillStyle=dep[i]<Infinity?tx:mu;ctx.fillText(dep[i]<Infinity?dep[i]:"·",X1+S/2,Y0+S/2+5);
+  if(rej.has(i)){ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X0+7,Y0+7);ctx.lineTo(X0+S-7,Y0+S-7);ctx.moveTo(X0+S-7,Y0+7);ctx.lineTo(X0+7,Y0+S-7);ctx.stroke();}}
+ if(step>0){const f=F[step-1];ctx.strokeStyle=tx;ctx.lineWidth=2.5;ctx.setLineDash([6,4]);OX.forEach(o=>ctx.strokeRect(o+f.x[0]*S,f.y[0]*S,(f.x[1]-f.x[0]+1)*S,(f.y[1]-f.y[0]+1)*S));ctx.setLineDash([]);}
+ ctx.restore();ctx.textAlign="left";ctx.fillStyle=mu;ctx.font=M3D.font(700);ctx.fillText("Bild (Farben)",OX[0],18);ctx.fillText("Tiefenpuffer (Entfernungen)",OX[1],18);
+ $("zbs").textContent="Schritt "+step+" von 3";$("zbi").textContent=TXT[step]+(step===3?" Verworfen: "+rej.size+" Pixel.":"");}
+$("zb0").onclick=()=>{step=Math.max(0,step-1);draw();};$("zb1").onclick=()=>{step=step>=3?0:step+1;draw();};M3D.onTheme(draw);draw();
+})();
+(function(){ // Alles zusammen
+const c=$("al"),W=660,H=380,ctx=M3D.setup(c,W,H),r=M3D.raster(W,H),off=document.createElement("canvas");off.width=W;off.height=H;const o2=off.getContext("2d");
+const mesh=M3D.cube(.62),st={ax:-0.15,ay:0.3},sl=$("an2");let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647;};
+const cubes=[];for(let i=0;i<300;i++)cubes.push({p:[(rnd()-.5)*10,(rnd()-.5)*4.2,(rnd()-.5)*8],o:[rnd()*6,rnd()*6]});
+const nf=v=>v.toLocaleString("de");
+function draw(){const n=+sl.value;$("an2v").textContent=n;const t0=performance.now();r.clear(M3D.rgb("--bg"));const dark=M3D.rgb("--c3"),light=M3D.rgb("--c1"),cam={cx:W/2,cy:H/2,dist:13,f:13,scale:44};
+ for(let i=0;i<n;i++){const q=M3D.rotX(M3D.rotY(cubes[i].p,st.ay),st.ax);M3D.renderMesh(r,mesh,{ax:st.ax,ay:st.ay,own:cubes[i].o,pos:q,cam,dark,light2:light});}
+ const ms=performance.now()-t0;o2.putImageData(r.img,0,0);ctx.clearRect(0,0,W,H);ctx.drawImage(off,0,0,W,H);
+ $("z1").textContent=nf(r.st.verts);$("z2").textContent=nf(r.st.tris)+" von "+nf(r.st.trisAll);$("z3").textContent=nf(r.st.tested);$("z4").textContent=nf(r.st.rejected);$("z5").textContent=nf(r.st.filled);$("z6").textContent=M3D.de(ms,1)+" ms";}
+sl.oninput=draw;M3D.drag(c,st,draw);M3D.onTheme(draw);draw();
 })();
 </script>
 </body>

@@ -10,33 +10,115 @@
 <main>
 <div class="eyebrow">KAPITEL 6 VON 7</div>
 <h1>Geschichte</h1>
-<p class="lead">Die Verfahren aus den letzten Kapiteln sind nicht auf einmal entstanden. Jede Stufe war die beste Antwort auf die Rechenleistung ihrer Zeit, und fast immer steckte eine algorithmische Idee dahinter.</p>
-<section class="stufe"><div><div class="eyebrow">UM 1980</div><h2>Nur Linien</h2><p>Die ersten 3D-Spiele wie Battlezone (1980) zeichnen nur die Kanten der Körper. Dafür genügen Kapitel 1 und die Projektion aus Kapitel 4: Eckpunkte drehen, projizieren, mit Linien verbinden. Flächen zu füllen war zu teuer, denn jedes gefüllte Pixel kostet Rechenzeit.</p><p><b>Aufwand:</b> wächst mit der Zahl der Kanten, nicht der Pixel.</p></div><div><img src="img/s2-draht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">1980ER BIS FRÜHE 1990ER</div><h2>Gefüllte Flächen</h2><p>Mit schnelleren Prozessoren werden die Dreiecke einfarbig gefüllt. Was vorn liegt, entscheidet der <b>Maleralgorithmus</b>: Die Dreiecke werden nach Entfernung sortiert und von hinten nach vorn gezeichnet, sodass nahe Flächen ferne übermalen. Das Sortieren kostet O(n · log n) und liefert Fehler, wenn sich Dreiecke durchdringen. Einen Tiefenpuffer konnte sich niemand leisten, er hätte zu viel Speicher gebraucht.</p></div><div><img src="img/s3-flaechen.png" alt=""></div></section><section class="stufe breit"><div><div class="eyebrow">1992 BIS 1993</div><h2>Der Trick mit dem Grundriss</h2><p>Wolfenstein 3D (1992) wirkt räumlich, rechnet aber in 2D. Die Welt ist ein Grundriss aus quadratischen Feldern. Für jede <b>Bildspalte</b> wird ein Strahl durch den Grundriss verfolgt, bis er auf eine Wand trifft. Je weiter die Wand entfernt ist, desto niedriger wird die Spalte gezeichnet.</p><pre><code>for spalte in range(breite):
-    winkel = blickrichtung + (spalte / breite - 0.5) * sichtfeld
-    d = 0
-    while karte[int(y + d * sin(winkel))][int(x + d * cos(winkel))] != WAND:
-        d = d + schritt
-    zeichne_wandstreifen(spalte, hoehe = bildhoehe / d)</code></pre><p><b>Aufwand:</b> ein Strahl pro Spalte, bei 320 Spalten also 320 Strahlen statt 64 000 Pixel. Der Preis: alle Wände gleich hoch, keine Räume übereinander. Doom (1993) lockerte diese Grenzen mit einer vorab berechneten Baumstruktur, die die Wände in der richtigen Reihenfolge liefert.</p><div class="demo"><div class="bar"><label class="sl">Blickrichtung <input id="ra" type="range" min="0" max="6.28" step="0.02" value="0.8"></label><span>So entsteht das Bild aus dem Grundriss</span></div><canvas id="rc" role="img" aria-label="Raycasting-Demo"></canvas></div></div></section><section class="stufe"><div><div class="eyebrow">1996</div><h2>Echtes 3D mit Texturen</h2><p>Quake (1996) baut Räume und Figuren vollständig aus texturierten Dreiecken, mit Rasterisierung und Tiefenvergleich wie in Kapitel 4. Möglich wird das durch Vorberechnung: Welche Räume von wo aus überhaupt sichtbar sind und wie das Licht auf den Wänden liegt, wird beim Erstellen der Level ausgerechnet und gespeichert. Zur Laufzeit wird nur nachgeschlagen.</p><p><b>Idee:</b> Rechenzeit gegen Speicher tauschen.</p></div><div><img src="img/s4-textur.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">AB 1996</div><h2>Grafikkarten</h2><p>Ab 1996 übernehmen eigene Grafikkarten die Rasterisierung, ab 1999 auch die Projektion der Eckpunkte. Die Verfahren bleiben dieselben, aber sie laufen jetzt parallel für viele Pixel gleichzeitig. Seit 2001 lassen sich die Berechnungen pro Eckpunkt und pro Pixel frei programmieren. Diese kleinen Programme heißen Shader. Damit werden Beleuchtung pro Pixel und Schatten aus Sicht der Lichtquelle zum Standard.</p></div><div><img src="img/s5-licht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">SEIT 2018</div><h2>Raytracing in Echtzeit</h2><p>Seit 2018 enthalten Grafikkarten Schaltungen, die den Schnitt von Strahlen mit dem Baum aus Hüllkörpern beschleunigen. Spiele kombinieren seitdem beide Verfahren: Rasterisierung für das Grundbild, Raytracing für Schatten, Spiegelungen und indirektes Licht. Weil nur wenige Strahlen pro Pixel bezahlbar sind, wird das verrauschte Ergebnis anschließend geglättet.</p></div><div><img src="img/s6-heute.png" alt=""></div></section>
-<div class="merke"><b>Merke:</b> Jede Stufe hat mit einer Idee Rechenzeit gespart: nur Kanten zeichnen, sortieren statt Tiefe speichern, in 2D rechnen, vorberechnen, parallel rechnen. Die Verfahren von heute sind die aus den Kapiteln 4 und 5.</div>
-<div class="quiz" data-q="Warum scheitert der Maleralgorithmus bei zwei Dreiecken, die sich durchdringen?" data-c="0" data-why="Es gibt keine Reihenfolge, die für alle Pixel stimmt. Der Tiefenpuffer entscheidet deshalb pro Pixel."><ul><li>Weil keines der beiden vollständig vor dem anderen liegt.</li><li>Weil Sortieren zu langsam ist.</li><li>Weil Dreiecke keine Farbe haben.</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Wolfenstein 3D lief mit 320 × 200 Pixeln. Vergleiche die Zahl der Strahlen beim Raycasting mit der Zahl der Strahlen, die ein Raytracer wie in Kapitel 5 bräuchte.</div><summary>Lösung anzeigen</summary><div class="t">Raycasting: 320 Strahlen, einer pro Spalte. Raytracing: 320 · 200 = 64 000 Kamerastrahlen und bis zu ebenso viele Schattenstrahlen. Das ist das 200- bis 400-Fache.</div></details>
+<p class="lead">Die Verfahren aus den letzten Kapiteln sind nicht auf einmal entstanden. Jede Stufe war die beste Antwort auf die Rechenleistung ihrer Zeit. Und fast immer steckte dahinter eine Idee, wie man mit weniger Rechnung auskommt.</p>
+<section class="stufe"><div><div class="eyebrow">UM 1980</div><h2>Nur Linien</h2>
+<p>Die ersten 3D-Spiele, etwa Battlezone (1980), zeigen von jedem Körper nur die Kanten. Gespeichert ist eine Liste von Eckpunkten und eine Liste von Kanten, die je zwei Eckpunkte verbinden. In jedem Bild passiert dreierlei:</p>
+<ol><li>Jeden Eckpunkt drehen und verschieben (<a href="01-koordinaten.html">Kapitel 1</a>).</li><li>Jeden Eckpunkt auf den Bildschirm projizieren (<a href="04-kamera.html#projektion">Kapitel 4, Schritt 2</a>).</li><li>Für jede Kante eine Linie zwischen ihren beiden Bildpunkten ziehen.</li></ol>
+<p><b>Warum keine gefüllten Flächen?</b> Jedes gefüllte Pixel muss einzeln berechnet und gespeichert werden. Ein Würfel, der ein Viertel des Bildschirms füllt, bedeutet Zehntausende Pixel. Seine zwölf Kanten berühren nur ein paar Hundert. Die Rechner dieser Zeit waren millionenfach langsamer als heutige. Linien waren das, was in 1/30 Sekunde zu schaffen war.</p></div><div><img src="img/s2-draht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">1980ER BIS FRÜHE 1990ER</div><h2>Gefüllte Flächen</h2>
+<p>Mit schnelleren Prozessoren werden die Dreiecke einfarbig gefüllt, zunächst in Flugsimulatoren und Rennspielen. Damit entsteht ein neues Problem: Welche Fläche verdeckt welche?</p>
+<p>Die damalige Lösung ist der <b>Maleralgorithmus</b>. Er arbeitet wie jemand, der ein Landschaftsbild malt: erst den Himmel, dann die Berge, dann das Haus, zuletzt den Baum im Vordergrund. Was später gemalt wird, übermalt das Frühere. Für den Computer heißt das:</p>
+<ol><li>Alle Dreiecke nach ihrer Entfernung zur Kamera sortieren.</li><li>Mit dem entferntesten beginnen und der Reihe nach zeichnen.</li></ol>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="pt" data-for><button class="on" data-m="1">Von hinten nach vorn</button><button data-m="0">Falsche Reihenfolge</button></div><label class="sl">Schritt <input id="ps" type="range" min="0" max="4" value="4"></label></div>
+ <canvas id="p" role="img" aria-label="Maleralgorithmus: Flächen werden nacheinander übermalt"></canvas>
+ <div class="info" id="pi"></div>
+</div>
+<p><b>Aufwand:</b> Das Sortieren von n Dreiecken kostet etwa n · log₂ n Schritte, und zwar in jedem Bild neu, weil sich die Kamera bewegt.</p>
+<p><b>Die Schwäche:</b> Wenn sich zwei Dreiecke durchdringen, liegt keines vollständig vor dem anderen. Dann gibt es keine richtige Reihenfolge, und im Bild entstehen Fehler. Der <a href="04-kamera.html#tiefenpuffer">Tiefenpuffer aus Kapitel 4</a> löst das, indem er für jedes Pixel einzeln entscheidet. Er braucht aber eine zweite Tabelle, so groß wie das ganze Bild. Dafür war Speicher damals zu teuer.</p></div><div><img src="img/s3-flaechen.png" alt=""></div></section><section class="stufe breit"><div><div class="eyebrow">1992 BIS 1993</div><h2>Räumlich aussehen, flach rechnen</h2>
+<p>Wolfenstein 3D (1992) zeigt Gänge und Räume aus der Ich-Perspektive, flüssig und mit Texturen an den Wänden. Für echtes 3D mit Dreiecken, Rasterisierung und Tiefenvergleich waren die Rechner noch zu langsam. Das Spiel umgeht das mit einer starken Vereinfachung.</p>
+<h3>Die Welt ist ein Grundriss</h3>
+<p>Der ganze Level ist eine Karte aus quadratischen Feldern, von oben gesehen. Jedes Feld ist entweder Wand oder frei. Es gibt keine Dreiecke und keine Höhe.</p>
+<pre><code>karte = [<span class="hs">&quot;##########&quot;</span>,
+         <span class="hs">&quot;#........#&quot;</span>,
+         <span class="hs">&quot;#..##....#&quot;</span>,        <span class="hc"># &quot;#&quot; = Wand, &quot;.&quot; = frei</span>
+         <span class="hs">&quot;#..#.....#&quot;</span>,
+         <span class="hs">&quot;##########&quot;</span>]
+spieler_x, spieler_y = <span class="hn">1.5</span>, <span class="hn">1.5</span>      <span class="hc"># Position auf der Karte</span>
+blickrichtung = <span class="hn">0.8</span>                  <span class="hc"># ein Winkel</span></code></pre>
+<p>Auch die Spielfigur hat nur zwei Koordinaten und eine Blickrichtung. Sie kann nicht springen und nicht nach oben oder unten schauen.</p>
+<h3>Ein Strahl pro Bildspalte</h3>
+<p>Das Bild wird Spalte für Spalte erzeugt. Für jede Spalte des Bildschirms wird auf der Karte ein Strahl in die passende Richtung verfolgt, bis er auf ein Wandfeld trifft. Das einzige Ergebnis ist eine Zahl: die Entfernung zur Wand.</p>
+<p>Aus dieser Entfernung wird ein senkrechter Wandstreifen gezeichnet. Ist die Wand nah, wird der Streifen hoch, ist sie fern, wird er niedrig. Das ist dieselbe Regel wie bei der <a href="04-kamera.html#projektion">Projektion</a>: Größe geteilt durch Entfernung. Viele Streifen nebeneinander ergeben ein Bild, das räumlich aussieht.</p>
+<div class="demo">
+ <div class="bar"><label class="sl">Blickrichtung <input id="ra" type="range" min="0" max="6.28" step="0.02" value="0.8"></label><label class="sl">Bildspalte <input id="rs" type="range" min="0" max="214" value="150"></label><span><button class="btn" id="rv">Vor</button> <button class="btn" id="rz">Zurück</button></span></div>
+ <canvas id="rc" role="img" aria-label="Links der Grundriss mit Strahlen, rechts das daraus berechnete Bild"></canvas>
+ <div class="info" id="ri"></div>
+</div>
+<p>Links siehst du, was der Computer wirklich berechnet: Strahlen auf einer flachen Karte. Rechts steht das Bild, das daraus entsteht. Wähle mit dem Regler eine Bildspalte und verfolge ihren Strahl auf der Karte.</p>
+<pre><code><span class="hk">for</span> spalte <span class="hk">in</span> range(bildbreite):
+    winkel = blickrichtung + (spalte / bildbreite - <span class="hn">0.5</span>) * sichtfeld
+    weg = <span class="hn">0</span>
+    <span class="hk">while</span> karte[int(spieler_y + weg * sin(winkel))][int(spieler_x + weg * cos(winkel))] != <span class="hs">&quot;#&quot;</span>:
+        weg = weg + SCHRITT                      <span class="hc"># auf der Karte weiterwandern</span>
+    zeichne_wandstreifen(spalte, hoehe = bildhoehe / weg)</code></pre>
+<p><b>Aufwand:</b> Bei 320 Bildspalten sind es 320 Strahlen pro Bild, jeder nur ein paar Schritte auf einer kleinen Karte. Es gibt nichts zu sortieren und keinen Tiefenpuffer, denn jeder Strahl findet von selbst die vorderste Wand.</p>
+<p><b>Der Preis:</b> Alle Wände sind gleich hoch und stehen senkrecht. Es gibt keine Treppen, keine Brücken und keine Räume übereinander. Deshalb spricht man von 2,5D. Doom (1993) erlaubte unterschiedlich hohe Böden und Decken, blieb im Kern aber ebenfalls ein Grundriss.</p></div></section><section class="stufe"><div><div class="eyebrow">1996</div><h2>Echtes 3D mit Texturen</h2>
+<p>Quake (1996) baut Räume, Gegner und Gegenstände vollständig aus Dreiecken mit Texturen. Man kann in jede Richtung schauen, Räume liegen übereinander. Gezeichnet wird so, wie es Kapitel 4 beschreibt: <a href="04-kamera.html#projektion">Projektion</a>, <a href="04-kamera.html#rasterisierung">Rasterisierung</a>, <a href="04-kamera.html#textur">Textur</a> und Tiefenvergleich.</p>
+<p>Die Prozessoren von 1996 hätten das für einen ganzen Level nicht geschafft. Quake wird durch <b>Vorberechnung</b> möglich: Aufwendige Rechnungen werden nicht während des Spiels ausgeführt, sondern einmal vorher, wenn der Level gebaut wird. Das Ergebnis wird gespeichert und im Spiel nur nachgeschlagen.</p>
+<ul><li><b>Sichtbarkeit:</b> Der Level ist in Bereiche unterteilt. Für jeden Bereich wird vorab eine Liste angelegt, welche anderen Bereiche von dort aus überhaupt zu sehen sind. Im Spiel werden nur die Dreiecke dieser Bereiche gezeichnet. Alles hinter geschlossenen Wänden entfällt, ohne dass ein einziges Pixel dafür geprüft wird.</li>
+<li><b>Licht:</b> Licht und Schatten auf den Wänden werden vorab mit einem langsamen, genauen Verfahren berechnet. Das dauerte pro Level Minuten bis Stunden. Das Ergebnis wird als Bild gespeichert und im Spiel wie eine zweite Textur über die Wände gelegt.</li></ul>
+<p><b>Die Idee dahinter:</b> Rechenzeit gegen Speicher tauschen. <b>Der Preis:</b> Was vorberechnet ist, kann sich nicht ändern. Wände bewegen sich nicht, Lampen lassen sich nicht ausschalten.</p></div><div><img src="img/s4-textur.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">AB 1996</div><h2 id="grafikkarte">Grafikkarten</h2>
+<p>Ein Prozessor besitzt wenige, sehr vielseitige Rechenkerne. Jeder kann beliebige Programme ausführen, arbeitet aber einen Befehl nach dem anderen ab. Für ein Bild mit zwei Millionen Pixeln heißt das: zwei Millionen Mal dieselbe kleine Rechnung, hintereinander.</p>
+<p>Eine <b>Grafikkarte</b> ist anders gebaut. Sie enthält Tausende sehr einfacher Recheneinheiten. Jede einzelne kann viel weniger als ein Prozessorkern, aber alle arbeiten gleichzeitig. Das lohnt sich nur bei Aufgaben, die sich in viele gleiche, voneinander unabhängige Teile zerlegen lassen. Genau so eine Aufgabe ist das Zeichnen: Die Farbe eines Pixels hängt nicht von der Farbe des Nachbarpixels ab (<a href="04-kamera.html#aufwand">Kapitel 4, Aufwand</a>).</p>
+<div class="demo">
+ <div class="bar"><div class="tabs" id="gt" data-for><button class="on" data-m="1">1 Recheneinheit</button><button data-m="16">16</button><button data-m="256">256</button></div><button class="btn" id="gb">Start</button></div>
+ <canvas id="g" role="img" aria-label="Ein Bild wird von einer oder vielen Recheneinheiten gefüllt"></canvas>
+ <div class="info" id="gi"></div>
+</div>
+<p>In der Demo färbt jede Recheneinheit pro Zeitschritt ein Pixel. Die Arbeit bleibt dieselbe, 600 Pixel. Aber mit 256 Einheiten ist sie nach 3 Zeitschritten erledigt statt nach 600.</p>
+<h3>Vom festen Ablauf zum Programm</h3>
+<ul><li><b>1996:</b> Die ersten verbreiteten 3D-Karten übernehmen Rasterisierung, Textur und Tiefenpuffer. Die Projektion der Eckpunkte rechnet weiter der Prozessor.</li>
+<li><b>1999:</b> Die Karten übernehmen auch Drehung, Verschiebung und Projektion der Eckpunkte. Seitdem heißt der Baustein GPU (Graphics Processing Unit).</li>
+<li><b>Ab 2001:</b> Bis dahin war der Rechenweg in der Karte fest verdrahtet. Jetzt lässt er sich programmieren. Spielestudios schreiben kleine Programme, die die Karte für jeden Eckpunkt und für jedes Pixel ausführt. Sie heißen <b>Shader</b>. Ein Pixel-Shader berechnet zum Beispiel die Helligkeit aus dem Winkel zum Licht (<a href="05-licht.html#winkel">Kapitel 5, Weg 1</a>) für jedes Pixel einzeln statt einmal pro Dreieck.</li></ul>
+<p><b>Die Idee dahinter:</b> nicht schneller rechnen, sondern gleichzeitig.</p></div><div><img src="img/s5-licht.png" alt=""></div></section><section class="stufe"><div><div class="eyebrow">SEIT 2018</div><h2>Raytracing in Echtzeit</h2>
+<p>Raytracing (<a href="05-licht.html#raytracing">Kapitel 5, Weg 2</a>) galt lange als zu teuer für Spiele. Pro Strahl muss der <a href="05-licht.html#baum">Baum aus Hüllkörpern</a> durchlaufen werden: Trifft der Strahl diesen Quader? Trifft er dieses Dreieck? Diese beiden Tests fallen milliardenfach pro Sekunde an.</p>
+<p>Seit 2018 enthalten Grafikkarten dafür eigene <b>Schaltungen</b>. Das bedeutet: Der Test ist nicht mehr ein Programm, das Befehl für Befehl abgearbeitet wird. Er ist direkt als Bauteil in den Chip gebaut. Ein solches Bauteil kann nur diese eine Rechnung, erledigt sie aber um ein Vielfaches schneller, und es gibt sehr viele davon nebeneinander.</p>
+<p>Trotzdem reicht die Leistung nur für wenige Strahlen pro Pixel. Für weiche Schatten oder Spiegelungen auf rauen Flächen bräuchte man eigentlich Hunderte. Das Ergebnis mit wenigen Strahlen ist körnig, wie ein Foto bei zu wenig Licht. Deshalb wird das Bild anschließend <b>entrauscht</b>: Jedes Pixel wird mit seinen Nachbarn und mit dem vorherigen Bild verrechnet.</p>
+<p>Heutige Spiele kombinieren beide Welten: Rasterisierung für das Grundbild, Raytracing für Schatten, Spiegelungen und indirektes Licht.</p></div><div><img src="img/s6-heute.png" alt=""></div></section>
+<div class="merke"><div class="mt">Merke</div>Jede Stufe spart Rechenzeit mit einer Idee. Nur Kanten zeichnen. Sortieren und übermalen (Maleralgorithmus). Auf einem Grundriss rechnen statt im Raum. Vorberechnen und speichern. Gleichzeitig rechnen (Grafikkarte). Häufige Tests als Schaltung bauen.</div>
+<div class="quiz" data-q="Warum scheitert der Maleralgorithmus bei zwei Dreiecken, die sich durchdringen?" data-c="0" data-why="Es gibt keine Reihenfolge, die für alle Pixel stimmt. Der Tiefenpuffer entscheidet deshalb pro Pixel."><ul><li>Weil keines der beiden vollständig vor dem anderen liegt.</li><li>Weil Sortieren zu langsam ist.</li><li>Weil Dreiecke keine Farbe haben.</li></ul></div><div class="quiz" data-q="Warum gilt Wolfenstein 3D nicht als echtes 3D?" data-c="1" data-why="Position und Karte haben nur zwei Koordinaten. Die Höhe der Wandstreifen wird aus der Entfernung berechnet."><ul><li>Weil es keine Texturen hat.</li><li>Weil die Welt ein flacher Grundriss ohne Höhe ist.</li><li>Weil es keine Perspektive zeigt.</li></ul></div><div class="quiz" data-q="Welche Aufgabe eignet sich besonders für eine Grafikkarte?" data-c="1" data-why="Nur unabhängige Teilaufgaben lassen sich auf viele Recheneinheiten verteilen."><ul><li>Eine lange Rechnung, bei der jeder Schritt das Ergebnis des vorigen braucht.</li><li>Sehr viele gleiche, voneinander unabhängige kleine Rechnungen.</li><li>Das Lesen einer Datei von der Festplatte.</li></ul></div><div class="aufgabe"><p><b>Aufgabe:</b> Wolfenstein 3D lief mit 320 × 200 Pixeln. Vergleiche die Zahl der Strahlen beim Verfahren mit dem Grundriss mit der Zahl der Strahlen, die Raytracing wie in Kapitel 5 bräuchte.</p><details><summary>Lösung anzeigen</summary><p>Grundriss: 320 Strahlen, einer pro Bildspalte. Raytracing: 320 · 200 = 64 000 Kamerastrahlen und bis zu ebenso viele Schattenstrahlen, also das 200- bis 400-Fache.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Ein Bild hat 2 Millionen Pixel. Eine Recheneinheit braucht für ein Pixel einen Zeitschritt. Wie viele Zeitschritte dauert das Bild mit einer Einheit, wie viele mit 4 000 Einheiten?</p><details><summary>Lösung anzeigen</summary><p>Mit einer Einheit 2 000 000 Zeitschritte. Mit 4 000 Einheiten 2 000 000 ÷ 4 000 = 500 Zeitschritte.</p></details></div><div class="aufgabe"><p><b>Aufgabe:</b> Bei Quake sind Licht und Schatten vorberechnet. Nenne einen Vorteil und einen Nachteil.</p><details><summary>Lösung anzeigen</summary><p>Vorteil: Im Spiel kostet das Licht fast keine Rechenzeit, es wird nur ein gespeichertes Bild über die Wand gelegt. Nachteil: Das Licht kann sich nicht ändern. Eine bewegte Lampe oder eine Tür, die Licht hereinlässt, ist so nicht darstellbar.</p></details></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
+const $=i=>document.getElementById(i);
+(function(){ // Maleralgorithmus
+const c=$("p"),W=660,H=250,ctx=M3D.setup(c,W,H),sl=$("ps");let ok=true;
+const obj=[{n:"Himmel",z:"∞",f:(x,t)=>{x.fillStyle=M3D.mix(t.bg,t.bd2,.35);x.fillRect(0,0,W,H);}},
+ {n:"Berg",z:900,f:(x,t)=>{x.fillStyle=t.c1;x.beginPath();x.moveTo(90,H);x.lineTo(330,34);x.lineTo(580,H);x.closePath();x.fill();x.stroke();}},
+ {n:"Haus",z:40,f:(x,t)=>{x.fillStyle=t.c2;x.fillRect(250,120,170,130);x.strokeRect(250,120,170,130);x.beginPath();x.moveTo(236,122);x.lineTo(335,62);x.lineTo(434,122);x.closePath();x.fill();x.stroke();}},
+ {n:"Baum",z:12,f:(x,t)=>{x.fillStyle=t.c3;x.fillRect(383,150,22,100);x.strokeRect(383,150,22,100);x.beginPath();x.arc(394,118,58,0,7);x.fill();x.stroke();}}];
+function draw(){ctx.clearRect(0,0,W,H);const t={bg:M3D.css("--bg"),bd2:M3D.css("--bd2"),c1:M3D.css("--c1"),c2:M3D.css("--c2"),c3:M3D.css("--c3")};ctx.strokeStyle=M3D.css("--ik");ctx.lineWidth=1.5;
+ const ord=ok?obj:[obj[3],obj[2],obj[1],obj[0]],k=+sl.value;ord.slice(0,k).forEach(o=>o.f(ctx,t));
+ $("pi").textContent=k===0?"Leeres Bild. Bewege den Regler.":"Gezeichnet: "+ord.slice(0,k).map(o=>o.n+" (Entfernung "+o.z+")").join(" → ")+(k===4&&!ok?" · Der Himmel hat alles übermalt.":"");}
+sl.oninput=draw;$("pt").addEventListener("click",e=>{const b=e.target.closest("button");if(b){ok=b.dataset.m==="1";draw();}});M3D.onTheme(draw);draw();
+})();
+(function(){ // Grundriss-Verfahren
 const MAP=["##########","#........#","#..##....#","#..#.....#","#........#","#....###.#","#........#","#.##.....#","#........#","##########"];
-const cv=document.getElementById("rc"),W=660,H=250,ctx=M3D.setup(cv,W,H),ra=document.getElementById("ra");
-function ray(){const ang=+ra.value,px=1.5,py=1.5,fov=1.1,VW=W-H-20,col=M3D.css("--c3"),bg=M3D.css("--bg"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),ac=M3D.css("--ac");
- ctx.clearRect(0,0,W,H);ctx.fillStyle=bd;ctx.fillRect(0,0,VW,H/2);
- const S=H/10,MX=VW+20;
- for(let y=0;y<10;y++)for(let x=0;x<10;x++){if(MAP[y][x]==="#"){ctx.fillStyle=col;ctx.fillRect(MX+x*S,y*S,S,S);}}
- ctx.strokeStyle=ac;ctx.lineWidth=1;ctx.globalAlpha=.5;ctx.beginPath();
- for(let x=0;x<VW;x+=2){const a=ang+(x/VW-.5)*fov,dx=Math.cos(a),dy=Math.sin(a);let t=0;
-  while(t<14){t+=.02;if(MAP[Math.floor(py+dy*t)][Math.floor(px+dx*t)]==="#")break;}
-  const d=t*Math.cos(a-ang),h=Math.min(H,H/d*.9),k=Math.max(.25,1-d/9);
-  ctx.globalAlpha=1;ctx.fillStyle=M3D.mix(bg,col,k);ctx.fillRect(x,(H-h)/2,2,h);
-  if(x%24===0){ctx.globalAlpha=.6;ctx.moveTo(MX+px*S,py*S);ctx.lineTo(MX+(px+dx*t)*S,(py+dy*t)*S);}}
- ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=tx;ctx.beginPath();ctx.arc(MX+px*S,py*S,4,0,7);ctx.fill();}
-ra.oninput=ray;M3D.onTheme(ray);ray();
+const c=$("rc"),W=660,H=260,ctx=M3D.setup(c,W,H),ra=$("ra"),rs=$("rs"),S=22,MY=20,VX=240,VW=430,VH=220,VY=20,fov=1.1;let px=1.5,py=1.5;
+const cast=a=>{const dx=Math.cos(a),dy=Math.sin(a);let t=0;while(t<16){t+=.02;if(MAP[Math.floor(py+dy*t)][Math.floor(px+dx*t)]==="#")break;}return t;};
+function draw(){const ang=+ra.value,sel=+rs.value,col=M3D.css("--c3"),bg=M3D.css("--bg"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),ac=M3D.css("--ac"),mu=M3D.css("--mu");
+ ctx.clearRect(0,0,W,H);ctx.fillStyle=bd;ctx.fillRect(VX,VY,VW,VH/2);
+ for(let y=0;y<10;y++)for(let x=0;x<10;x++){if(MAP[y][x]==="#"){ctx.fillStyle=col;ctx.fillRect(x*S,MY+y*S,S,S);}else{ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(x*S+.5,MY+y*S+.5,S,S);}}
+ let info="";
+ for(let i=0;i<215;i++){const a=ang+(i/215-.5)*fov,t=cast(a),d=t*Math.cos(a-ang),h=Math.min(VH,VH/d*.9),k=Math.max(.25,1-d/9);
+  ctx.fillStyle=M3D.mix(bg,col,k);ctx.fillRect(VX+i*2,VY+(VH-h)/2,2,h);
+  if(i%12===0||i===sel){ctx.strokeStyle=i===sel?tx:ac;ctx.globalAlpha=i===sel?1:.45;ctx.lineWidth=i===sel?2.5:1;ctx.beginPath();ctx.moveTo(px*S,MY+py*S);ctx.lineTo((px+Math.cos(a)*t)*S,MY+(py+Math.sin(a)*t)*S);ctx.stroke();ctx.globalAlpha=1;}
+  if(i===sel){ctx.strokeStyle=tx;ctx.lineWidth=2;ctx.strokeRect(VX+i*2-2,VY+(VH-h)/2-2,6,h+4);info="Bildspalte "+(i+1)+": Der Strahl trifft nach "+M3D.de(d,1)+" Feldern auf eine Wand → Höhe des Streifens = Bildhöhe ÷ "+M3D.de(d,1);}}
+ ctx.fillStyle=tx;ctx.beginPath();ctx.arc(px*S,MY+py*S,5,0,7);ctx.fill();ctx.font=M3D.font(600);ctx.fillStyle=mu;ctx.fillText("Grundriss",0,13);ctx.fillText("Bild",VX,13);$("ri").textContent=info;}
+function step(s){const a=+ra.value,nx=px+Math.cos(a)*.3*s,ny=py+Math.sin(a)*.3*s;if(MAP[Math.floor(ny)][Math.floor(nx)]!=="#"){px=nx;py=ny;}draw();}
+ra.oninput=draw;rs.oninput=draw;$("rv").onclick=()=>step(1);$("rz").onclick=()=>step(-1);M3D.onTheme(draw);draw();
+})();
+(function(){ // Recheneinheiten
+const c=$("g"),N=40,M=15,S=16.5,W=660,H=M*S,ctx=M3D.setup(c,W,H),bt=$("gb");let U=1,round=0,run=false;
+function draw(){ctx.clearRect(0,0,W,H);const ac=M3D.css("--ac"),bd=M3D.css("--bd"),tx=M3D.css("--tx"),bg=M3D.css("--bg"),done=Math.min(N*M,round*U);
+ for(let i=0;i<N*M;i++){const x=(i%N)*S,y=Math.floor(i/N)*S,r=i%U,k=Math.floor(i/U);
+  if(k<round){ctx.fillStyle=k===round-1&&run?tx:M3D.mix(bg,ac,.7);ctx.fillRect(x+1,y+1,S-2,S-2);}else{ctx.strokeStyle=bd;ctx.lineWidth=1;ctx.strokeRect(x+.5,y+.5,S-1,S-1);}}
+ $("gi").textContent="Zeitschritte: "+Math.min(round,Math.ceil(N*M/U))+" von "+Math.ceil(N*M/U)+" · gefärbte Pixel: "+done+" von "+N*M;}
+function tick(){if(!run)return;round++;draw();if(round*U>=N*M){run=false;bt.textContent="Start";draw();return;}setTimeout(tick,U===1?16:U===16?70:450);}
+bt.onclick=()=>{if(run){run=false;bt.textContent="Start";return;}round=0;run=true;bt.textContent="Stopp";tick();};
+$("gt").addEventListener("click",e=>{const b=e.target.closest("button");if(b){U=+b.dataset.m;run=false;bt.textContent="Start";round=0;draw();}});M3D.onTheme(draw);draw();
+})();
 </script>
 </body>
 </html>

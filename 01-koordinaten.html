@@ -12,7 +12,7 @@
 <h1>Koordinaten</h1>
 <p class="lead">Jeder Ort in der Spielwelt ist ein Punkt (x | y | z). Fast alles, was ein Spiel mit seiner Welt tut, ist Rechnen mit solchen Zahlentripeln.</p>
 <p>x zeigt nach rechts, y nach oben, z in die Tiefe. In Python ist ein Punkt einfach eine Liste mit drei Zahlen:</p>
-<pre><code>p = [2, 1, 2]        # x, y, z</code></pre>
+<pre><code>p = [<span class="hn">2</span>, <span class="hn">1</span>, <span class="hn">2</span>]        <span class="hc"># x, y, z</span></code></pre>
 <div class="demo">
  <div class="bar"><label class="sl">x <input id="x" type="range" min="-3" max="3" step="0.5" value="2"></label><label class="sl">y <input id="y" type="range" min="0" max="3" step="0.5" value="1"></label><label class="sl">z <input id="z" type="range" min="-3" max="3" step="0.5" value="2"></label><label class="sl">Drehung α <input id="a" type="range" min="0" max="360" step="5" value="0"></label></div>
  <canvas id="c" role="img" aria-label="Koordinatensystem mit Punkt"></canvas>
@@ -22,32 +22,32 @@
 <h2>Drei Grundoperationen</h2>
 <h3>Verschieben</h3>
 <p>Eine Bewegung ist eine Addition, Koordinate für Koordinate.</p>
-<pre><code>def verschiebe(p, v):
-    return [p[0] + v[0], p[1] + v[1], p[2] + v[2]]</code></pre>
-<h3>Abstand</h3>
+<pre><code><span class="hk">def</span> <span class="hd">verschiebe</span>(p, v):
+    <span class="hk">return</span> [p[<span class="hn">0</span>] + v[<span class="hn">0</span>], p[<span class="hn">1</span>] + v[<span class="hn">1</span>], p[<span class="hn">2</span>] + v[<span class="hn">2</span>]]</code></pre>
+<h3 id="abstand">Abstand</h3>
 <p>Der Abstand zweier Punkte folgt aus dem Satz des Pythagoras, zweimal angewendet: erst in der Bodenebene, dann mit der Höhe.</p>
-<pre><code>def abstand(p, q):
-    dx, dy, dz = q[0] - p[0], q[1] - p[1], q[2] - p[2]
-    return (dx*dx + dy*dy + dz*dz) ** 0.5</code></pre>
+<pre><code><span class="hk">def</span> <span class="hd">abstand</span>(p, q):
+    dx, dy, dz = q[<span class="hn">0</span>] - p[<span class="hn">0</span>], q[<span class="hn">1</span>] - p[<span class="hn">1</span>], q[<span class="hn">2</span>] - p[<span class="hn">2</span>]
+    <span class="hk">return</span> (dx*dx + dy*dy + dz*dz) ** <span class="hn">0.5</span></code></pre>
 <h3>Drehen um die y-Achse</h3>
 <p>Bei einer Drehung um die y-Achse bleibt y gleich. x und z bewegen sich auf einem Kreis, beschrieben durch Sinus und Kosinus:</p>
-<pre><code>from math import sin, cos
+<pre><code><span class="hk">from</span> math <span class="hk">import</span> sin, cos
 
-def drehe_y(p, alpha):               # alpha im Bogenmaß
+<span class="hk">def</span> <span class="hd">drehe_y</span>(p, alpha):               <span class="hc"># alpha im Bogenmaß</span>
     x, y, z = p
-    return [x * cos(alpha) + z * sin(alpha),
+    <span class="hk">return</span> [x * cos(alpha) + z * sin(alpha),
             y,
             -x * sin(alpha) + z * cos(alpha)]</code></pre>
 <h2>Aufwand</h2>
 <p>Jede dieser Operationen kostet eine feste, kleine Zahl von Rechenschritten. Eine Figur besteht aber aus vielen Punkten. Dreht sich eine Figur mit 50 000 Punkten, wird <code>drehe_y</code> in jedem Bild 50 000-mal aufgerufen. Der Aufwand wächst linear mit der Zahl der Punkte n, man schreibt O(n).</p>
-<div class="merke"><b>Merke:</b> Ein Punkt ist eine Liste [x, y, z]. Verschieben ist Addieren, der Abstand folgt aus Pythagoras, Drehen aus Sinus und Kosinus. Der Aufwand für eine Figur wächst linear mit der Zahl ihrer Punkte.</div>
-<div class="quiz" data-q="Wie weit ist der Punkt (1 | 2 | 2) vom Ursprung entfernt?" data-c="0" data-why="√(1 + 4 + 4) = √9 = 3."><ul><li>3</li><li>5</li><li>9</li></ul></div><div class="quiz" data-q="Der Punkt (1 | 0 | 0) wird mit drehe_y um 90° gedreht. Wo liegt er danach?" data-c="0" data-why="x′ = 1 · cos 90° = 0 und z′ = −1 · sin 90° = −1; y bleibt 0."><ul><li>(0 | 0 | −1)</li><li>(0 | 1 | 0)</li><li>(−1 | 0 | 0)</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Schreibe eine Funktion <code>skaliere(p, k)</code>, die einen Punkt vom Ursprung aus um den Faktor k streckt. Was passiert mit dem Abstand zum Ursprung?</div><summary>Lösung anzeigen</summary><div class="t"><code>return [p[0]*k, p[1]*k, p[2]*k]</code>. Der Abstand zum Ursprung wird ebenfalls mit k multipliziert.</div></details>
+<div class="merke"><div class="mt">Merke</div>Ein Punkt ist eine Liste [x, y, z]. Verschieben ist Addieren, der Abstand folgt aus Pythagoras, Drehen aus Sinus und Kosinus. Der Aufwand für eine Figur wächst linear mit der Zahl ihrer Punkte.</div>
+<div class="quiz" data-q="Wie weit ist der Punkt (1 | 2 | 2) vom Ursprung entfernt?" data-c="0" data-why="√(1 + 4 + 4) = √9 = 3."><ul><li>3</li><li>5</li><li>9</li></ul></div><div class="quiz" data-q="Der Punkt (1 | 0 | 0) wird mit drehe_y um 90° gedreht. Wo liegt er danach?" data-c="0" data-why="x′ = 1 · cos 90° = 0 und z′ = −1 · sin 90° = −1; y bleibt 0."><ul><li>(0 | 0 | −1)</li><li>(0 | 1 | 0)</li><li>(−1 | 0 | 0)</li></ul></div><div class="aufgabe"><p><b>Aufgabe:</b> Schreibe eine Funktion <code>skaliere(p, k)</code>, die einen Punkt vom Ursprung aus um den Faktor k streckt. Was passiert mit dem Abstand zum Ursprung?</p><details><summary>Lösung anzeigen</summary><p><code>return [p[0]*k, p[1]*k, p[2]*k]</code>. Der Abstand zum Ursprung wird ebenfalls mit k multipliziert.</p></details></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
 <script>
 const c=document.getElementById("c"),W=660,H=430,ctx=M3D.setup(c,W,H);
-const st={ax:0.4,ay:-0.55},cam={cx:W/2,cy:H/2+95,dist:14,f:14,scale:84};
+const st={ax:-0.4,ay:0.5},cam={cx:W/2,cy:H/2+40,dist:14,f:14,scale:70};
 const g=i=>+document.getElementById(i).value;
 function P(x,y,z){return M3D.project(M3D.rotX(M3D.rotY([x,y,z],st.ay),st.ax),cam);}
 function line(a,b,col,w,dash){ctx.beginPath();ctx.setLineDash(dash||[]);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.stroke();ctx.setLineDash([]);}

@@ -13,18 +13,18 @@
 <p class="lead">Ein Spiel ist eine Endlosschleife, die in jedem Durchlauf ein neues Bild berechnet. Die Zeit für einen Durchlauf ist knapp, und daraus folgt fast alles in diesem Buch.</p>
 <h2>Die Spielschleife</h2>
 <pre><code>letzte = zeit()
-while spiel_laeuft:
+<span class="hk">while</span> spiel_laeuft:
     jetzt = zeit()
-    dt = jetzt - letzte          # vergangene Zeit in Sekunden
+    dt = jetzt - letzte          <span class="hc"># vergangene Zeit in Sekunden</span>
     letzte = jetzt
 
     eingaben_lesen()
-    welt_aktualisieren(dt)       # Bewegung, Kollisionen
+    welt_aktualisieren(dt)       <span class="hc"># Bewegung, Kollisionen</span>
     bild_zeichnen()</code></pre>
 <p>Bei 60 Bildern pro Sekunde dauert ein Durchlauf höchstens 1 s ÷ 60 ≈ 16,7 ms. Schafft das Programm das nicht, ruckelt das Spiel.</p>
 <h2>Warum dt?</h2>
 <p>Nicht jeder Rechner schafft gleich viele Bilder. Würde eine Figur pro Bild um einen festen Betrag weiterrücken, wäre sie auf einem schnellen Rechner schneller. Deshalb rechnet man mit der vergangenen Zeit:</p>
-<pre><code>x = x + geschwindigkeit * dt     # Weg = Geschwindigkeit · Zeit</code></pre>
+<pre><code>x = x + geschwindigkeit * dt     <span class="hc"># Weg = Geschwindigkeit · Zeit</span></code></pre>
 <div class="demo">
  <div class="bar"><div class="tabs" id="tabs" data-for><button class="on" data-m="dt">mit dt</button><button data-m="fest">fester Schritt pro Bild</button></div>
  <label class="sl">Bilder pro Sekunde <input id="fps" type="range" min="5" max="120" value="60"><b id="fpsv">60</b></label></div>
@@ -37,8 +37,8 @@ while spiel_laeuft:
 <p>Daraus folgen zwei Konsequenzen, die sich durch alle Kapitel ziehen:</p>
 <ul><li><b>Der Aufwand zählt.</b> Ein Verfahren, dessen Aufwand quadratisch mit der Zahl der Objekte wächst, ist schnell unbrauchbar.</li>
 <li><b>Parallel rechnen.</b> Die Grafikkarte besitzt Tausende einfacher Recheneinheiten. Geeignet sind Verfahren, bei denen jedes Dreieck und jedes Pixel unabhängig von den anderen berechnet werden kann.</li></ul>
-<div class="merke"><b>Merke:</b> Die Spielschleife liest Eingaben, aktualisiert die Welt um den Zeitschritt dt und zeichnet das Bild. Bei 60 Bildern pro Sekunde stehen dafür 16,7 ms zur Verfügung.</div>
-<div class="quiz" data-q="Ein Monitor zeigt 144 Bilder pro Sekunde. Wie viel Zeit bleibt pro Bild?" data-c="0" data-why="1000 ms ÷ 144 ≈ 6,9 ms."><ul><li>etwa 6,9 ms</li><li>etwa 14,4 ms</li><li>etwa 69 ms</li></ul></div><details class="aufgabe"><div class="t"><b>Aufgabe:</b> Eine Figur läuft mit 4 m/s. Das Spiel schafft 50 Bilder pro Sekunde. Um wie viel ändert sich ihre Position pro Bild? Was ändert sich bei 25 Bildern pro Sekunde?</div><summary>Lösung anzeigen</summary><div class="t">dt = 1 ÷ 50 = 0,02 s, also 4 · 0,02 = 0,08 m pro Bild. Bei 25 Bildern ist dt = 0,04 s und der Schritt 0,16 m. Pro Sekunde bleiben es in beiden Fällen 4 m.</div></details>
+<div class="merke"><div class="mt">Merke</div>Die Spielschleife liest Eingaben, aktualisiert die Welt um den Zeitschritt dt und zeichnet das Bild. Bei 60 Bildern pro Sekunde stehen dafür 16,7 ms zur Verfügung.</div>
+<div class="quiz" data-q="Ein Monitor zeigt 144 Bilder pro Sekunde. Wie viel Zeit bleibt pro Bild?" data-c="0" data-why="1000 ms ÷ 144 ≈ 6,9 ms."><ul><li>etwa 6,9 ms</li><li>etwa 14,4 ms</li><li>etwa 69 ms</li></ul></div><div class="aufgabe"><p><b>Aufgabe:</b> Eine Figur läuft mit 4 m/s. Das Spiel schafft 50 Bilder pro Sekunde. Um wie viel ändert sich ihre Position pro Bild? Was ändert sich bei 25 Bildern pro Sekunde?</p><details><summary>Lösung anzeigen</summary><p>dt = 1 ÷ 50 = 0,02 s, also 4 · 0,02 = 0,08 m pro Bild. Bei 25 Bildern ist dt = 0,04 s und der Schritt 0,16 m. Pro Sekunde bleiben es in beiden Fällen 4 m.</p></details></div>
 </main>
 <script src="js/mini3d.js"></script>
 <script src="js/site.js"></script>
